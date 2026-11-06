@@ -1,0 +1,953 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Agent FIBA"><meta name="theme-color" content="#16130f"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" href="icon-192.png"><title>Parcours Agent FIBA</title><style>:root{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout : tableau d'affichage de salle — bandeau compte à rebours, onglets, cartes de modules cochables */
+:root{
+  --bg:#f6f3ef; --surface:#ffffff; --fg:#1d1a17; --muted:#6b625a; --line:#e3dcd3;
+  --accent:#d4561c; --accent-soft:#fbe7dc; --ok:#2f7d4f; --ok-soft:#e1f1e7; --warn:#a86a00; --warn-soft:#fbf0d6;
+  --board:#16130f; --board-fg:#f5efe8; --info:#2d6fb3; --info-soft:#e3eef9;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#14120f; --surface:#1e1b17; --fg:#f1ebe4; --muted:#a69c91; --line:#332e28;
+  --accent:#f0773d; --accent-soft:#3a2216; --ok:#5cc184; --ok-soft:#183324; --warn:#e2a83a; --warn-soft:#3a2c10;
+  --board:#0b0a08; --board-fg:#f5efe8; --info:#6aa7e6; --info-soft:#17283b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14120f; --surface:#1e1b17; --fg:#f1ebe4; --muted:#a69c91; --line:#332e28;
+  --accent:#f0773d; --accent-soft:#3a2216; --ok:#5cc184; --ok-soft:#183324; --warn:#e2a83a; --warn-soft:#3a2c10;
+  --board:#0b0a08; --board-fg:#f5efe8; --info:#6aa7e6; --info-soft:#17283b; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.05;letter-spacing:.01em}
+h1{font-size:clamp(34px,8vw,52px);font-weight:800;text-transform:uppercase}
+h2{font-size:26px;font-weight:700;text-transform:uppercase}
+h3{font-size:20px;font-weight:700}
+p{margin:0}
+.lede{color:var(--muted);max-width:62ch}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+
+/* Tableau d'affichage */
+.board{background:var(--board);color:var(--board-fg);border-radius:14px;padding:18px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center}
+.board .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.7}
+.board .what{font-family:var(--display);font-size:22px;font-weight:700;text-transform:uppercase}
+.digits{display:flex;gap:6px}
+.digit{background:#2a241d;color:#ff8a4c;font-family:var(--display);font-weight:800;font-size:44px;line-height:1;padding:8px 10px;border-radius:6px;min-width:44px;text-align:center;font-variant-numeric:tabular-nums}
+.board small{display:block;font-family:var(--mono);font-size:11px;opacity:.7;text-align:right;margin-top:4px}
+@media (max-width:520px){.board{grid-template-columns:1fr}.board small{text-align:left}}
+
+/* Progression */
+.prog{display:flex;align-items:center;gap:12px}
+.bar{flex:1;height:10px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);width:0;transition:width .4s}
+.prog b{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+
+/* Onglets */
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5;padding-block:8px}
+.tabs button{font-family:var(--display);font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:.03em;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:99px;padding:8px 14px;cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.tabs button:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+
+section{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+
+/* Tableau coûts */
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:500}
+td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+tr.total td{font-weight:600;border-bottom:none}
+
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:99px;letter-spacing:.04em}
+.pill.urgent{background:var(--accent-soft);color:var(--accent)}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.note{font-size:13px;color:var(--muted)}
+ul.clean{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+
+/* Feuille de route */
+.phase{display:grid;grid-template-columns:92px 1fr;gap:14px}
+.phase .when{font-family:var(--display);font-weight:800;font-size:18px;text-transform:uppercase;color:var(--accent);line-height:1.1}
+.phase .when span{display:block;font-family:var(--mono);font-size:11px;color:var(--muted);font-weight:500;margin-top:4px}
+@media (max-width:520px){.phase{grid-template-columns:1fr;gap:6px}}
+.task{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-top:1px dashed var(--line)}
+.task:first-of-type{border-top:none}
+.task input{width:18px;height:18px;margin-top:2px;accent-color:var(--accent);flex:none}
+.task label{cursor:pointer}
+.task.done label{color:var(--muted);text-decoration:line-through}
+.res{font-size:13px}
+a{color:var(--accent)}
+
+/* Quiz */
+.quiz-q{font-weight:600;font-size:16px}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opts button{text-align:left;font:inherit;background:var(--bg);border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:10px 12px;cursor:pointer}
+.opts button.right{background:var(--ok-soft);border-color:var(--ok)}
+.opts button.wrong{background:var(--accent-soft);border-color:var(--accent)}
+.qnav{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.btn{font-family:var(--display);font-weight:700;text-transform:uppercase;font-size:16px;letter-spacing:.03em;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 16px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.expl{font-size:14px;color:var(--muted)}
+
+/* Quiz façon fiches */
+.qcard{gap:14px}
+.qtop{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.star{font-size:22px;line-height:1;background:none;border:1px solid var(--line);color:var(--warn);border-radius:99px;width:40px;height:40px;cursor:pointer}
+.quiz-q{font-size:18px;line-height:1.4}
+.verdict{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line);font-size:14px;color:var(--muted)}
+.verdict.ok{background:var(--ok-soft);border-color:var(--ok);color:var(--ok)}
+.verdict.ko{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.vt{font-family:var(--display);font-weight:700;font-size:20px;text-transform:uppercase}
+.dots{display:inline-flex;gap:6px}
+.dots i{width:16px;height:16px;border-radius:50%;background:var(--line);display:block}
+.dots i.on{background:var(--ok)}
+.opts button{display:flex;gap:12px;align-items:flex-start;padding:12px}
+.opts button .let{font-family:var(--mono);font-size:12px;border:1px solid var(--line);border-radius:6px;padding:1px 6px;flex:none;margin-top:2px}
+.opts button.picked{border-color:var(--fg);background:var(--surface)}
+.expl-head{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.expl-box{background:var(--info-soft);color:var(--fg);border-left:3px solid var(--info);border-radius:8px;padding:12px 14px;margin:0 0 10px}
+.btn.wide{width:100%;border-color:var(--accent);color:var(--accent)}
+.qfoot{display:flex;align-items:center;gap:12px;margin-top:4px}
+.qprog{flex:1;display:flex;align-items:center;gap:10px;min-width:0}
+.qprog b{font-family:var(--mono);font-size:13px;white-space:nowrap}
+.next{width:52px;height:52px;border-radius:50%;border:none;background:var(--accent);color:#fff;font-size:24px;cursor:pointer;flex:none}
+.next:disabled{opacity:.35;cursor:default}
+.rev{border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:4px}
+.rev.ko b{color:var(--accent)}
+/* Modules du cours */
+details.mod{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+details.mod summary{cursor:pointer;list-style:none;padding:14px 18px;font-family:var(--display);font-weight:700;font-size:20px;text-transform:uppercase;display:flex;gap:12px;align-items:baseline}
+details.mod summary::-webkit-details-marker{display:none}
+details.mod summary::after{content:"+";margin-left:auto;color:var(--muted);font-family:var(--mono)}
+details.mod[open] summary::after{content:"–"}
+.mn{font-family:var(--mono);font-size:12px;color:var(--accent);font-weight:500}
+.mb{padding:0 18px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.mb td.num{text-align:right}
+.filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.filters button{white-space:nowrap;flex:none;font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:99px;padding:5px 11px;cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header style="display:flex;flex-direction:column;gap:8px">
+    <span class="eyebrow">Plan de carrière · Cisse</span>
+    <h1>Parcours Agent FIBA</h1>
+    <p class="lede">De la licence FIBA à la certification NBPA : les coûts, les dates et un programme coché étape par étape pour placer des joueurs en EuroLeague puis en NBA.</p>
+  </header>
+
+  <div class="board" aria-live="polite">
+    <div>
+      <div class="lbl">Prochain test FIBA Europe</div>
+      <div class="what">Mies (Suisse) · 11 déc. 2026</div>
+    </div>
+    <div>
+      <div class="digits" id="digits"></div>
+      <small>jours restants</small>
+    </div>
+  </div>
+
+  <div class="prog"><div class="bar"><i id="pbar"></i></div><b id="ptxt">0 %</b></div>
+  <div><span class="pill ok" id="sync">Fonctionne sans connexion · progression sur cet appareil</span></div>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-t="cours" aria-selected="false">Cours</button>
+    <button role="tab" data-t="licence" aria-selected="true">Licence FIBA</button>
+    <button role="tab" data-t="nba" aria-selected="false">NBA</button>
+    <button role="tab" data-t="euro" aria-selected="false">EuroLeague</button>
+    <button role="tab" data-t="image" aria-selected="false">Image du joueur</button>
+    <button role="tab" data-t="plan" aria-selected="false">Programme</button>
+    <button role="tab" data-t="quiz" aria-selected="false">Quiz</button>
+  </nav>
+
+  <!-- COURS -->
+  <section id="cours" hidden>
+    <div class="card">
+      <span class="eyebrow">Comment utiliser ce cours</span>
+      <p>Les vraies questions du test ne sont pas publiques : personne ne peut te les donner. Ce cours couvre tout ce que la FIBA annonce comme matière d'examen, d'après le Règlement Intérieur en vigueur depuis le 22 avril 2026. Lis un module par jour, fais le quiz du module, puis relis le texte officiel en anglais.</p>
+      <p class="note">Repère <span class="pill warn">à vérifier</span> : règle tirée d'une édition antérieure du règlement. Vérifie-la dans le chapitre « Players' Agents » de l'édition 2026 avant le test.</p>
+    </div>
+
+    <div class="card">
+      <h3>Les textes officiels à télécharger</h3>
+      <p>Le test porte sur ces deux Livres du Règlement Intérieur FIBA (édition en vigueur depuis le 22 avril 2026). Ils sont gratuits, en anglais, sur le site de la FIBA. Télécharge-les sur ton téléphone pour les lire hors connexion.</p>
+      <ul class="clean">
+        <li><a href="https://assets.fiba.basketball/image/upload/documents-corporate-fiba-regulations-internal-regulations-book-3.pdf" target="_blank" rel="noopener">Livre 3 – Players and Officials (PDF)</a></li>
+        <li><a href="https://assets.fiba.basketball/image/upload/documents-corporate-fiba-regulations-internal-regulations-book-1.pdf" target="_blank" rel="noopener">Livre 1 – General Provisions (PDF)</a></li>
+      </ul>
+      <p><b>Ordre de lecture</b>, du plus important au moins important :</p>
+      <div class="tbl"><table>
+        <thead><tr><th>Priorité</th><th>Chapitre</th><th>Module du cours</th></tr></thead>
+        <tbody>
+          <tr><td><span class="pill urgent">1</span></td><td>Livre 3, chap. 9 – Players' Agents (pages 51 à 56)</td><td>02</td></tr>
+          <tr><td><span class="pill urgent">2</span></td><td>Livre 3, chap. 2 – International Transfer of Players (art. 3-64 à 3-101), mineurs compris</td><td>03, 04</td></tr>
+          <tr><td><span class="pill urgent">3</span></td><td>Livre 3, chap. 10 – Basketball Arbitral Tribunal (pages 57 à 58)</td><td>08</td></tr>
+          <tr><td><span class="pill warn">4</span></td><td>Livre 3, chap. 1 – Eligibility, National Status, Availability (art. 3-11 à 3-53)</td><td>05, 06</td></tr>
+          <tr><td><span class="pill warn">5</span></td><td>Livre 1, chap. 5 – Code of Conduct et Code of Ethics (art. 1-88 à 1-153)</td><td>09</td></tr>
+          <tr><td><span class="pill warn">6</span></td><td>Livre 1 – Sanctions et procédure disciplinaire (art. 1-165 à 1-202)</td><td>09</td></tr>
+          <tr><td><span class="pill ok">7</span></td><td>Livre 3 – Licences des joueurs étrangers (art. 3-103 à 3-112)</td><td>07</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">Tu peux sauter les chapitres sur les arbitres, commissaires, statisticiens et officiels de table. Le chapitre 9 est celui que je n'ai pas pu lire en ligne : lis-le crayon en main et compare-le au module 02.</p>
+    </div>
+
+    <details class="mod" open>
+      <summary><span class="mn">01</span> Le système FIBA</summary>
+      <div class="mb">
+        <p><b>Qui fait quoi.</b> La FIBA gouverne le basket mondial depuis Mies (Suisse). Elle agit à travers ses <b>Fédérations nationales membres</b> (National Member Federations, NMF) et ses <b>Bureaux régionaux</b> (Regional Offices : Afrique, Amériques, Asie, Europe, Océanie).</p>
+        <p><b>Les textes.</b> Les <b>Statuts généraux</b> fixent l'organisation. Le <b>Règlement Intérieur</b> (Internal Regulations, IR) est découpé en Livres. Pour l'examen, retiens surtout :</p>
+        <ul class="clean">
+          <li><b>Livre 1</b> – Dispositions générales : code de conduite, éthique, sanctions, système d'information.</li>
+          <li><b>Livre 3</b> – Joueurs et officiels : éligibilité, disponibilité pour les équipes nationales, transferts internationaux, licences, agents, BAT.</li>
+        </ul>
+        <p><b>Les organes de décision.</b> Le <b>Secrétaire général</b> décide en première instance de la plupart des affaires. Il peut renvoyer au <b>Disciplinary Panel</b>. Les recours vont à l'<b>Appeals' Panel</b>. Les questions d'éthique vont à l'<b>Ethics Panel</b>. Le <b>Central Board</b> nomme notamment le président du BAT.</p>
+        <p><b>MAP.</b> Le FIBA Information System, appelé « MAP », sert à échanger documents et demandes (transferts, licences). Tout ce qui y est déposé doit être vrai et authentique. Une fausse information est une infraction administrative et peut devenir une infraction disciplinaire.</p>
+      </div>
+    </details>
+
+    <details class="mod">
+      <summary><span class="mn">02</span> L'agent de joueurs</summary>
+      <div class="mb">
+        <p><b>Le principe.</b> Joueurs et clubs peuvent faire appel à un agent, mais uniquement à un <b>agent licencié FIBA</b>. Utiliser un agent non licencié est interdit et sanctionnable, pour le joueur comme pour le club. Pour un transfert international, la FIBA peut <b>refuser la lettre de sortie</b> si l'agent qui gère le transfert n'est pas licencié FIBA.</p>
+        <p><b>Qui peut être agent.</b></p>
+        <ul class="clean">
+          <li>Seule une <b>personne physique</b> obtient la licence. Elle peut travailler via une société, mais reste seule responsable devant la FIBA.</li>
+          <li><b>Incompatibilités</b> : impossible d'occuper en même temps un poste à la FIBA, dans une fédération, un club, une ligue ou une association de joueurs. Un entraîneur membre de la WABC ne peut pas détenir de licence d'agent.</li>
+          <li>Casier judiciaire à fournir, traduit en anglais.</li>
+          <li>Depuis le 1ᵉʳ janvier 2026 : les avocats suivent le cours FIBA mais ne passent pas le test. Les agents NBA ou NCAA doivent passer le test.</li>
+        </ul>
+        <p><b>Garder sa licence.</b> Elle expire le <b>31 décembre</b> et se renouvelle en payant la cotisation annuelle. Si elle est retirée ou expirée plus de 6 mois, il faut refaire cours et test. <span class="pill warn">à vérifier</span> Les anciennes éditions exigeaient une assurance responsabilité civile professionnelle d'au moins CHF 250 000.</p>
+        <p><b>Le contrat d'agent.</b></p>
+        <ul class="clean">
+          <li>Toujours <b>écrit</b>. La FIBA fournit un contrat type à utiliser autant que possible.</li>
+          <li><span class="pill warn">à vérifier</span> Durée maximale de <b>2 ans</b>, renouvelable par accord exprès.</li>
+          <li>Un joueur n'a qu'<b>un seul agent licencié à la fois</b> pour une même opération.</li>
+        </ul>
+        <p><b>Les devoirs de l'agent.</b></p>
+        <ul class="clean">
+          <li><b>Pas de conflit d'intérêts</b> : ne jamais représenter les deux parties (joueur et club) dans la même transaction.</li>
+          <li>N'être payé <b>que par sa propre partie contractante</b>. Depuis le 5 décembre 2024, les clubs ne peuvent plus payer l'agent du joueur, ni directement ni indirectement, ni via une clause du contrat. Le joueur paie son agent.</li>
+          <li>Ne pas démarcher un joueur déjà sous contrat avec un autre agent pour l'inciter à rompre.</li>
+          <li>Ne pas approcher les joueurs, surtout les moins de 18 ans, pendant les camps d'entraînement et les compétitions.</li>
+          <li>Agir de bonne foi et informer son client de ses obligations contractuelles.</li>
+        </ul>
+        <p><b>Sanctions possibles.</b> Pour l'agent : avertissement, amende, suspension, retrait de licence. Pour le joueur qui utilise un agent non licencié : amende ou interdiction de transfert. Pour le club : amende, interdiction de transfert ou d'enregistrement.</p>
+        <p><b>Spécificités suisses.</b> En Suisse, un agent qui place des joueurs venant de l'étranger a aussi besoin d'une autorisation de placement du SECO. Et quand le joueur paie, le droit suisse plafonne la commission à 5 % du premier salaire annuel.</p>
+      </div>
+    </details>
+
+    <details class="mod">
+      <summary><span class="mn">03</span> Transferts internationaux</summary>
+      <div class="mb">
+        <p><b>La lettre de sortie</b> (Letter of Clearance, LoC) est le certificat FIBA qui autorise un joueur à passer d'une fédération à une autre. La nouvelle fédération doit l'obtenir <b>avant</b> de licencier le joueur.</p>
+        <ul class="clean">
+          <li>Elle ne peut être délivrée qu'à <b>une seule fédération</b> à la fois.</li>
+          <li>Elle ne peut être ni <b>limitée</b> ni <b>conditionnelle</b>.</li>
+          <li>Elle ne peut pas être retardée ou refusée à cause d'un <b>litige d'argent</b> entre club et joueur.</li>
+        </ul>
+        <p><b>Les délais à connaître par cœur.</b></p>
+        <div class="tbl"><table>
+          <tbody>
+            <tr><td>Réponse de la fédération d'origine</td><td class="num">6 jours</td></tr>
+            <tr><td>Contestation d'une réponse négative par la fédération demandeuse</td><td class="num">3 jours</td></tr>
+            <tr><td>Décision de la FIBA en cas de litige</td><td class="num">7 jours</td></tr>
+            <tr><td>Demande d'indemnité de formation (jeune joueur)</td><td class="num">2 semaines</td></tr>
+          </tbody>
+        </table></div>
+        <p><b>Motifs de refus de la LoC</b> (art. 3-67) : contrat en cours au-delà de la date de transfert ; joueur interdit de transfert ; club interdit d'enregistrement ; fédération suspendue ; transfert illégal antérieur ; frais administratifs impayés ; <b>agent non licencié FIBA</b> ; doublons dans le système ; informations fausses ou trompeuses.</p>
+        <p><b>La demande de transfert</b> doit indiquer le nom et le numéro de licence de l'agent du joueur.</p>
+        <p><b>Transfert illégal.</b> Un transfert sans LoC, ou d'un mineur sans autorisation FIBA, est illégal et nul. Joueur, club, agent et fédération peuvent être sanctionnés.</p>
+      </div>
+    </details>
+
+    <details class="mod">
+      <summary><span class="mn">04</span> Les joueurs mineurs</summary>
+      <div class="mb">
+        <p>C'est le sujet le plus sensible pour un agent qui recrute des jeunes en Afrique ou en Europe.</p>
+        <ul class="clean">
+          <li><b>Pas de transfert international avant 18 ans</b>, sauf cas spécial accordé par le Secrétaire général.</li>
+          <li>Entre <b>14 et 18 ans</b>, une première inscription à l'étranger exige une LoC. La FIBA peut l'exiger avant 14 ans dans des cas exceptionnels.</li>
+          <li>Transfert <b>non lié au basket</b> (ex. la famille déménage) : déclarations signées par le joueur, les parents, le nouveau club et la nouvelle fédération.</li>
+          <li>Transfert <b>lié au basket</b> : scolarité adaptée, formation adaptée, contribution au Fonds de solidarité, indemnité au club formateur. Le joueur reste disponible pour l'équipe nationale de son pays d'origine jusqu'à 23 ans.</li>
+          <li>L'indemnité est fixée par accord entre clubs ou par le Secrétaire général. Pas de licence tant qu'elle n'est pas payée.</li>
+          <li>À <b>18 ans</b>, le club qui détient la licence peut proposer un premier contrat pro de <b>1 à 4 ans</b>.</li>
+          <li>Aucuns frais de LoC pour les jeunes joueurs.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="mod">
+      <summary><span class="mn">05</span> Éligibilité et statut national</summary>
+      <div class="mb">
+        <p><b>Pour jouer pour un pays</b>, il faut son passeport. Un joueur né dans le pays est éligible avec une déclaration écrite de choix. Un joueur né ailleurs est éligible s'il avait ce passeport <b>avant 18 ans</b>, ou s'il prouve des liens significatifs avec le pays.</p>
+        <p><b>Le joueur « restreint »</b> (Restricted Player, souvent appelé naturalisé) : celui qui ne remplit pas ces conditions. <b>Un seul</b> joueur restreint par équipe nationale sur la liste finale.</p>
+        <p><b>Changer d'équipe nationale.</b></p>
+        <ul class="clean">
+          <li>Le statut devient <b>irrévocable</b> dès que le joueur figure sur une liste finale.</li>
+          <li>Changement impossible après une Coupe du monde, des JO, une Coupe continentale ou un championnat U19/U20.</li>
+          <li>Sinon : dernière sélection il y a au moins <b>5 ans</b>, au plus <b>5 matchs</b> officiels avec l'ancienne équipe, accord de l'ancienne fédération ou décision du Secrétaire général. Le joueur devient alors joueur restreint.</li>
+          <li>Effet <b>45 jours</b> après notification. Un seul changement possible dans une carrière.</li>
+          <li>Demande déposée par la fédération au moins <b>14 jours</b> avant la compétition.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="mod">
+      <summary><span class="mn">06</span> Disponibilité pour les équipes nationales</summary>
+      <div class="mb">
+        <ul class="clean">
+          <li>Un club <b>doit libérer</b> son joueur convoqué en équipe nationale pour une compétition FIBA du calendrier. Toute clause contraire dans le contrat est une violation. Point clé pour tes négociations de contrat.</li>
+          <li>Le joueur doit accepter la convocation.</li>
+          <li>La fédération envoie la demande au moins <b>30 jours</b> avant la fenêtre.</li>
+          <li>Pendant une fenêtre internationale, le joueur est disponible toute la fenêtre. Pour les tournois, jusqu'à <b>28 jours</b> plus la durée de la compétition ; <b>21 jours</b> pour les jeunes.</li>
+          <li>Arrivée <b>48 h</b> avant le premier match, retour au club dans les <b>24 h</b> après le dernier.</li>
+          <li>La fédération qui convoque paie le voyage.</li>
+          <li>Refus sans justificatif médical : le joueur ne peut pas jouer en club pendant <b>10 jours</b> supplémentaires. Le club fautif peut perdre ses matchs par forfait.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="mod">
+      <summary><span class="mn">07</span> Licences des joueurs étrangers</summary>
+      <div class="mb">
+        <ul class="clean">
+          <li>Licence <b>« A »</b> : délivrée par le Bureau régional pour les étrangers en 1ʳᵉ et 2ᵉ division.</li>
+          <li>Licence <b>« B »</b> : délivrée par la FIBA pour les compétitions de clubs FIBA.</li>
+          <li>3ᵉ et 4ᵉ divisions : simple liste des étrangers de 18 ans et plus.</li>
+          <li>Un joueur ne peut pas être licencié dans deux fédérations en même temps, ni avoir deux licences du même type.</li>
+          <li>Équipes nationales : jusqu'à <b>24</b> joueurs sur la liste préliminaire, <b>10 à 12</b> sur la liste finale.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="mod">
+      <summary><span class="mn">08</span> Le Basketball Arbitral Tribunal (BAT)</summary>
+      <div class="mb">
+        <p>Le BAT règle les litiges financiers entre <b>clubs, joueurs et agents</b> (salaires impayés, commissions). C'est ton arme pour te faire payer.</p>
+        <ul class="clean">
+          <li>Il faut une <b>clause écrite</b> dans le contrat qui confie le litige au BAT. Mets-la dans chacun de tes contrats.</li>
+          <li><b>Siège : Genève</b>. Procédure régie par le chapitre 12 de la loi suisse sur le droit international privé.</li>
+          <li><b>Un arbitre unique</b> nommé par le président du BAT.</li>
+          <li>Langue : <b>anglais</b>.</li>
+          <li>L'arbitre décide <b>ex aequo et bono</b>, c'est-à-dire en équité, et non selon un droit national précis.</li>
+          <li>La sentence est <b>définitive et obligatoire</b> dès sa communication.</li>
+          <li>Si une partie ne paie pas, la FIBA peut sanctionner : amendes, retrait de licence d'agent, interdiction de transfert du joueur, interdiction d'enregistrement pour le club. Ce soutien est réservé aux agents licenciés FIBA.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="mod">
+      <summary><span class="mn">09</span> Code de conduite, éthique et sanctions</summary>
+      <div class="mb">
+        <p>Il s'applique à toutes les « Basketball Parties » : fédérations, clubs, ligues, officiels, participants. Tu en feras partie en tant qu'agent.</p>
+        <ul class="clean">
+          <li><b>Intégrité</b> : honnêteté, jamais de fausse information en connaissance de cause.</li>
+          <li><b>Paris et manipulation</b> : interdit de parier sur une compétition protégée et d'influencer un résultat.</li>
+          <li><b>Cadeaux</b> : à déclarer, dans les limites des usages du pays.</li>
+          <li><b>Confidentialité</b> : pas de divulgation d'informations confidentielles, pas d'enregistrement de réunions sans accord écrit.</li>
+          <li><b>Non-discrimination</b> : race, genre, origine ethnique, religion, etc.</li>
+          <li><b>Signalement obligatoire</b> pour les conflits d'intérêts, les paris ou manipulations, et la protection des personnes. Signalement anonyme possible, représailles interdites.</li>
+        </ul>
+        <div class="tbl"><table>
+          <thead><tr><th>Sanction</th><th style="text-align:right">Maximum</th></tr></thead>
+          <tbody>
+            <tr><td>Amende disciplinaire, personne physique</td><td class="num">CHF 100 000</td></tr>
+            <tr><td>Amende disciplinaire, personne morale (club, fédération)</td><td class="num">CHF 300 000</td></tr>
+            <tr><td>Infraction administrative, personne physique</td><td class="num">CHF 2 000</td></tr>
+            <tr><td>Infraction administrative, personne morale</td><td class="num">CHF 5 000</td></tr>
+            <tr><td>Délai de prescription des poursuites disciplinaires</td><td class="num">10 ans</td></tr>
+          </tbody>
+        </table></div>
+        <p class="note">Les infractions administratives ne sont pas susceptibles de recours. Une personne physique peut aussi être suspendue ou bannie à vie.</p>
+      </div>
+    </details>
+
+    <details class="mod">
+      <summary><span class="mn">10</span> Lexique anglais de l'examen</summary>
+      <div class="mb tbl">
+        <table>
+          <tbody>
+            <tr><td>Letter of Clearance (LoC)</td><td>Lettre de sortie</td></tr>
+            <tr><td>National Member Federation (NMF)</td><td>Fédération nationale membre</td></tr>
+            <tr><td>Restricted Player</td><td>Joueur restreint (naturalisé)</td></tr>
+            <tr><td>National status</td><td>Nationalité sportive</td></tr>
+            <tr><td>Release period</td><td>Période de mise à disposition</td></tr>
+            <tr><td>Transfer ban</td><td>Interdiction de transfert</td></tr>
+            <tr><td>Registration ban</td><td>Interdiction d'enregistrer des joueurs</td></tr>
+            <tr><td>Award</td><td>Sentence arbitrale</td></tr>
+            <tr><td>Ex aequo et bono</td><td>En équité</td></tr>
+            <tr><td>Power of attorney</td><td>Procuration</td></tr>
+            <tr><td>Conflict of interest</td><td>Conflit d'intérêts</td></tr>
+            <tr><td>Solidarity Fund</td><td>Fonds de solidarité</td></tr>
+            <tr><td>Training compensation</td><td>Indemnité de formation</td></tr>
+            <tr><td>Appeals' Panel</td><td>Chambre d'appel</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+
+  <!-- LICENCE FIBA -->
+  <section id="licence">
+    <div class="card">
+      <span class="pill urgent">Action immédiate</span>
+      <h3>Inscris-toi maintenant pour le test du 11 décembre</h3>
+      <p>Les sessions ont une capacité maximale et un minimum de participants. La FIBA recommande de s'inscrire tôt. Le test Europe a lieu en général une fois par an, donc rater décembre peut coûter un an.</p>
+      <p class="res">Inscription : <a href="https://map-public.fiba.basketball/agent-tests/season" target="_blank" rel="noopener">map-public.fiba.basketball/agent-tests/season</a> · Contact : <span style="font-family:var(--mono)">agents@fiba.basketball</span></p>
+    </div>
+
+    <div class="card">
+      <h3>Les 5 étapes officielles</h3>
+      <ul class="clean">
+        <li><b>Inscription en ligne</b> + frais administratifs non remboursables de <b>CHF 350</b>.</li>
+        <li><b>Préparation</b> sur le Règlement Intérieur FIBA (FIBA IR). Test en anglais.</li>
+        <li><b>Session de test</b> en présentiel, avec une présentation FIBA juste avant.</li>
+        <li><b>Réussir le QCM</b> : 45 minutes, seuil habituel 60 %, sans notes. Sur tablette ou ordinateur portable.</li>
+        <li><b>Payer la cotisation annuelle</b> pour activer la licence (au prorata la 1ʳᵉ année). Elle expire chaque 31 décembre.</li>
+      </ul>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Documents à fournir</h3>
+        <ul class="clean">
+          <li>Copie du passeport valide</li>
+          <li>Photo d'identité</li>
+          <li>Extrait de casier judiciaire traduit en anglais</li>
+          <li>CV en anglais</li>
+        </ul>
+        <p class="note">Le jour J : pièce d'identité physique (pas de copie), tenue business casual.</p>
+      </div>
+      <div class="card">
+        <h3>Chapitres à maîtriser</h3>
+        <ul class="clean">
+          <li>Code de conduite (IR Livre 1)</li>
+          <li>Sanctions (IR Livre 1)</li>
+          <li>Éligibilité, statut national, disponibilité des joueurs (IR Livre 3)</li>
+          <li>Transferts internationaux (IR Livre 3)</li>
+          <li>Basketball Arbitral Tribunal, BAT (IR Livre 3)</li>
+          <li>Règlement des agents de joueurs, antidopage, enregistrement</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Budget année 1</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>Poste</th><th style="text-align:right">Montant</th></tr></thead>
+        <tbody>
+          <tr><td>Frais d'inscription au test FIBA</td><td class="num">CHF 350</td></tr>
+          <tr><td>Cotisation annuelle de licence <span class="pill warn">montant non publié</span><br><span class="note">L'ancien règlement la plafonnait à CHF 1 000. Demande le chiffre exact à agents@fiba.basketball.</span></td><td class="num">≤ CHF 1 000</td></tr>
+          <tr><td>Trajet + nuit à Mies (près de Genève)</td><td class="num">≈ CHF 150–300</td></tr>
+          <tr class="total"><td>Total estimé</td><td class="num">≈ CHF 1 500–1 650</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">Bon à savoir : en 2026, le taux de réussite a été très élevé (42 reçus sur 46 à Mies, 92 % aux Amériques). Le test est accessible si tu as travaillé les règlements.</p>
+    </div>
+  </section>
+
+  <!-- NBA -->
+  <section id="nba" hidden>
+    <div class="card">
+      <span class="pill warn">Fenêtre 2026 fermée hier</span>
+      <h3>La licence FIBA ne suffit pas pour la NBA</h3>
+      <p>Pour représenter des joueurs NBA et G League, il faut une certification séparée du syndicat des joueurs, la NBPA. La fenêtre de candidature 2026-27 a fermé le 30 octobre 2026. Ta cible réaliste : candidature en septembre-octobre 2027, examen en janvier 2028 à New York.</p>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Conditions</h3>
+        <ul class="clean">
+          <li>Diplôme d'une université de 4 ans accréditée, <b>ou</b> expérience de négociation pertinente (à l'appréciation de la NBPA).</li>
+          <li>Candidats internationaux acceptés.</li>
+          <li>Enquête de moralité, y compris tes réseaux sociaux.</li>
+          <li>Examen en présentiel, une seule fois par an, en janvier à New York.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Ce qu'il faut étudier</h3>
+        <ul class="clean">
+          <li>Règlement NBPA des agents (version 2025)</li>
+          <li>Convention collective NBA-NBPA 2023 (CBA) : salary cap, exceptions, échanges, contrats rookies</li>
+          <li>Articles clés : II, VII à XII, XXIV, XXV, XXVII, XXIX, XXXVI, XLI, Exhibit A</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Coûts NBPA</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>Poste</th><th style="text-align:right">Montant</th></tr></thead>
+        <tbody>
+          <tr><td>Frais de candidature (enquête + ressources de préparation)</td><td class="num">$750</td></tr>
+          <tr><td>Cotisation au prorata après réussite</td><td class="num">$1 250</td></tr>
+          <tr><td>Cotisation annuelle dès le 1ᵉʳ juillet suivant (0 à 9 joueurs)</td><td class="num">$2 500</td></tr>
+          <tr><td>Séminaire annuel obligatoire les 3 premières années (LA, Chicago ou NYC) + voyage examen</td><td class="num">≈ $2 000–3 500</td></tr>
+          <tr class="total"><td>Première année complète</td><td class="num">≈ $6 500–8 000</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">Commission maximale NBPA : 4 % du contrat NBA négocié. La vraie rentabilité vient du volume de joueurs et des contrats annexes (sponsoring).</p>
+    </div>
+  </section>
+
+  <!-- EUROLEAGUE -->
+  <section id="euro" hidden>
+    <div class="card">
+      <span class="pill ok">Ta licence FIBA est la clé</span>
+      <h3>EuroLeague et clubs européens</h3>
+      <p>Seuls les agents licenciés FIBA peuvent représenter des joueurs lors de transferts internationaux. C'est donc ta licence FIBA qui t'ouvre l'EuroLeague, l'EuroCup et les championnats nationaux. Elle te donne aussi accès au BAT pour faire exécuter tes commissions impayées.</p>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Règle importante depuis 2025</h3>
+        <p>Depuis le 1ᵉʳ février 2025, ce sont les joueurs qui paient directement leur agent. Les contrats ne doivent plus contenir de clause où le club paie l'agent. Ton mandat doit donc prévoir clairement ta commission côté joueur.</p>
+      </div>
+      <div class="card">
+        <h3>Attention à la France</h3>
+        <p>Pour travailler avec des clubs français, la loi exige en plus une licence d'agent sportif délivrée par la FFBB, avec un examen général (CNOSF, en novembre) puis un examen spécifique basket. Prévois-le pour 2027 si tu vises la Betclic Élite.</p>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Le chemin le plus réaliste vers la NBA</h3>
+      <p>Repérer de jeunes talents (Afrique francophone, France, Suisse), les placer dans de bons clubs européens, les faire progresser jusqu'à l'EuroLeague, puis les présenter à la Draft NBA ou aux équipes NBA. La licence FIBA d'abord, la NBPA ensuite quand tu as un joueur qui peut y prétendre.</p>
+    </div>
+  </section>
+
+  <!-- IMAGE DU JOUEUR -->
+  <section id="image" hidden>
+    <div class="card">
+      <span class="pill ok">Pôle image de l'agence</span>
+      <h3>Pourquoi travailler l'image du joueur</h3>
+      <p>Un contrat de club dure 1 à 3 ans. Une image forte rapporte pendant toute la carrière, et après. Elle aide aussi à négocier : un joueur suivi et apprécié attire plus de clubs, plus de sponsors et plus d'attention des recruteurs NBA. Pour l'agence, c'est une deuxième source de revenus en plus de la commission sur les contrats sportifs.</p>
+    </div>
+
+    <details class="mod" open>
+      <summary><span class="mn">01</span> Le diagnostic</summary>
+      <div class="mb">
+        <p>Avant de publier quoi que ce soit, fais un état des lieux pour chaque joueur signé.</p>
+        <ul class="clean">
+          <li><b>Comptes</b> : Instagram, TikTok, YouTube, X, LinkedIn. Abonnés, taux d'engagement, régularité.</li>
+          <li><b>Recherche Google</b> de son nom : articles, vidéos, et ce qui apparaît en premier.</li>
+          <li><b>Nettoyage</b> : anciens posts gênants, photos, propos à supprimer avant tout transfert. Les clubs et la NBPA regardent les réseaux.</li>
+          <li><b>Contrats existants</b> : sponsor déjà signé, clause d'image dans le contrat club, exclusivités.</li>
+          <li><b>Highlights</b> : y a-t-il une vidéo récente, propre, de moins de 3 minutes ?</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="mod">
+      <summary><span class="mn">02</span> Le positionnement</summary>
+      <div class="mb">
+        <p>Chaque joueur a besoin d'une histoire simple qu'on peut raconter en une phrase. Trois questions :</p>
+        <ul class="clean">
+          <li><b>Qui est-il sur le terrain ?</b> Son style de jeu, son rôle, sa signature (défenseur acharné, shooteur, leader).</li>
+          <li><b>Qui est-il en dehors ?</b> Ses origines, sa famille, sa foi, ses passions, son engagement.</li>
+          <li><b>À qui parle-t-il ?</b> Les fans de son club, son pays d'origine, la diaspora, les jeunes basketteurs, les marques.</li>
+        </ul>
+        <p class="note">Exemple : « Le meneur ivoirien formé en Suisse qui inspire les jeunes de Treichville. » Une phrase comme celle-là guide tout le contenu et toutes les marques à approcher.</p>
+        <p>Ensuite, définis une identité visuelle stable : photo de profil pro, couleurs, logo ou initiales, même nom d'utilisateur sur tous les réseaux.</p>
+      </div>
+    </details>
+
+    <details class="mod">
+      <summary><span class="mn">03</span> Le plan de contenu</summary>
+      <div class="mb">
+        <p>Quatre piliers, en alternance :</p>
+        <div class="tbl"><table>
+          <thead><tr><th>Pilier</th><th>Exemples</th></tr></thead>
+          <tbody>
+            <tr><td><b>Performance</b></td><td>Highlights, actions du match, stats de la semaine</td></tr>
+            <tr><td><b>Coulisses</b></td><td>Entraînement, vestiaire, voyages, préparation physique</td></tr>
+            <tr><td><b>Personnalité</b></td><td>Famille, musique, style, cuisine, questions des fans</td></tr>
+            <tr><td><b>Impact</b></td><td>Camps pour jeunes, retour au pays, associations</td></tr>
+          </tbody>
+        </table></div>
+        <p><b>Rythme réaliste</b> pendant la saison : 3 à 4 posts par semaine, des stories après chaque match, une vidéo longue par mois sur YouTube.</p>
+        <p><b>Automatise la production</b> : un monteur ou un outil récupère les images du match, découpe les meilleures actions, ajoute sous-titres et habillage, et prépare la publication. Le joueur valide en quelques minutes. Si tu utilises l'IA pour produire du contenu avec son visage ou sa voix, il te faut son accord écrit dans le contrat d'image.</p>
+      </div>
+    </details>
+
+    <details class="mod">
+      <summary><span class="mn">04</span> Media training et gestion de crise</summary>
+      <div class="mb">
+        <ul class="clean">
+          <li><b>Interviews</b> : préparer 3 messages clés avant chaque interview, s'entraîner devant caméra, en français et en anglais.</li>
+          <li><b>Règles réseaux</b> : jamais de post à chaud après une défaite, pas de critique du coach ou du club, pas de pari, pas de politique sans accord.</li>
+          <li><b>Mots de passe</b> : l'agence garde un accès de secours et active la double authentification.</li>
+          <li><b>Crise</b> : le joueur ne répond pas seul. L'agence attend les faits, prépare un message court, et le publie dans les 24 heures si nécessaire.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="mod">
+      <summary><span class="mn">05</span> Partenariats et sponsors</summary>
+      <div class="mb">
+        <p>Monte l'échelle dans cet ordre :</p>
+        <ul class="clean">
+          <li><b>Équipementier</b> : chaussures et textile. D'abord du matériel offert, puis un contrat rémunéré quand le joueur monte de niveau.</li>
+          <li><b>Marques locales</b> : concessionnaire auto, restaurant, salle de sport, opérateur télécom de son pays.</li>
+          <li><b>Marques de la diaspora</b> : très efficaces pour un joueur africain qui joue en Europe.</li>
+          <li><b>Marques nationales puis internationales</b>, quand le joueur arrive en EuroLeague ou en NBA.</li>
+        </ul>
+        <p><b>Ce qu'il faut envoyer aux marques</b> : un dossier média d'une page avec la photo, l'histoire du joueur, ses chiffres réseaux, son audience (pays, âge), et les formats proposés (posts, présence à un événement, ambassadeur).</p>
+      </div>
+    </details>
+
+    <details class="mod">
+      <summary><span class="mn">06</span> Droits d'image et contrats</summary>
+      <div class="mb">
+        <p>C'est la partie juridique : c'est elle qui protège les revenus du joueur et de l'agence.</p>
+        <ul class="clean">
+          <li><b>Contrat de club</b> : vérifie la clause d'image. Le club utilise en général l'image du joueur en tenue du club. Négocie pour que l'image individuelle, hors club, reste au joueur.</li>
+          <li><b>Conflits de marques</b> : un joueur sponsorisé par une marque de chaussures peut être obligé de porter celle du club à l'entraînement. Vérifie les deux contrats avant de signer.</li>
+          <li><b>Contrat d'image joueur–agence</b>, séparé du mandat sportif, écrit, avec : durée, territoire, types d'usage, validation du joueur avant publication, pourcentage de l'agence, propriété des contenus, droit de retrait.</li>
+          <li><b>Joueur mineur</b> : signature des parents obligatoire, et la règle du droit local s'applique.</li>
+          <li><b>En NBA</b> : l'image collective des joueurs (jeux vidéo, cartes) est gérée par la NBPA via sa filiale commerciale THINK450. L'image individuelle reste négociée par le joueur et son agent.</li>
+          <li><b>Fiscalité</b> : selon le pays, les revenus d'image peuvent être traités différemment du salaire. Fais vérifier par un fiscaliste avant de créer une société d'image.</li>
+        </ul>
+        <p class="note">Je ne suis pas juriste : fais relire ton premier contrat d'image par un avocat en droit du sport.</p>
+      </div>
+    </details>
+
+    <details class="mod">
+      <summary><span class="mn">07</span> Le modèle économique de l'agence</summary>
+      <div class="mb">
+        <div class="tbl"><table>
+          <thead><tr><th>Source de revenus</th><th>Fonctionnement courant</th></tr></thead>
+          <tbody>
+            <tr><td>Commission sur sponsors</td><td>Pourcentage de chaque contrat marketing négocié, souvent 10 à 20 % dans le marché, plus élevé que la commission sportive</td></tr>
+            <tr><td>Forfait gestion des réseaux</td><td>Abonnement mensuel payé par le joueur pour la production et la publication</td></tr>
+            <tr><td>Événements</td><td>Camps, clinics, tournées dans le pays d'origine, avec billetterie et partenaires</td></tr>
+            <tr><td>Produits dérivés</td><td>Collection au nom du joueur, vendue en ligne</td></tr>
+          </tbody>
+        </table></div>
+        <p class="note">Les plafonds de commission FIBA et NBPA visent les contrats de jeu. Pour le marketing, le pourcentage est fixé dans ton contrat d'image, dans les limites du droit local.</p>
+      </div>
+    </details>
+
+    <div class="card">
+      <h3>Plan de lancement : 90 jours pour un nouveau joueur</h3>
+      <p class="note">À refaire pour chaque joueur signé. Coche au fur et à mesure.</p>
+      <div id="imgplan"></div>
+    </div>
+  </section>
+
+  <!-- PROGRAMME -->
+  <section id="plan" hidden>
+    <p class="lede">Coche chaque tâche terminée. Ta progression est enregistrée dans ce navigateur.</p>
+    <div id="phases" style="display:flex;flex-direction:column;gap:14px"></div>
+  </section>
+
+  <!-- QUIZ -->
+  <section id="quiz" hidden>
+    <div class="prog" id="qhead"></div>
+    <div class="filters" id="filters"></div>
+    <div class="card qcard" id="qcard"></div>
+    <p class="note">Questions basées sur les informations officielles FIBA et NBPA. Le vrai test FIBA est en anglais : entraîne-toi aussi avec le texte original du FIBA IR.</p>
+  </section>
+
+  <footer class="note" style="border-top:1px solid var(--line);padding-top:12px">
+    Sources : <a href="https://about.fiba.basketball/fr/agents/become-a-fiba-agent" target="_blank" rel="noopener">FIBA – Devenir agent</a> ·
+    <a href="https://nbpa.com/agents/faqs" target="_blank" rel="noopener">NBPA – FAQ agents</a> ·
+    <a href="https://about.fiba.basketball/en/our-sport/general-statutes-and-internal-regulations" target="_blank" rel="noopener">FIBA Internal Regulations</a>. Informations vérifiées le 31 octobre 2026.
+  </footer>
+</div>
+
+<script>
+const PHASES=[
+ {when:"Phase 1",sub:"Nov – déc. 2026",title:"Décrocher la licence FIBA",tasks:[
+  "S'inscrire au test FIBA du 11 décembre (Mies) et payer les CHF 350",
+  "Demander l'extrait de casier judiciaire et le faire traduire en anglais",
+  "Rédiger un CV en anglais orienté sport / négociation",
+  "Télécharger le FIBA Internal Regulations (Livres 1 et 3)",
+  "Lire le Code de conduite et les Sanctions (Livre 1)",
+  "Lire Éligibilité, statut national et disponibilité des joueurs (Livre 3)",
+  "Lire Transferts internationaux et lettre de sortie (Livre 3)",
+  "Lire le chapitre BAT et le chapitre « Players' Agents » (édition 2026)",
+  "Réussir 3 examens blancs de suite avec au moins 85 %",
+  "Réserver trajet et hôtel pour Mies",
+  "Passer le test et payer la cotisation de licence"]},
+ {when:"Phase 2",sub:"Janv. – juin 2027",title:"Lancer l'agence",tasks:[
+  "Créer la structure juridique de l'agence (Suisse ou France)",
+  "Rédiger un modèle de mandat joueur conforme FIBA (commission payée par le joueur)",
+  "Souscrire une assurance responsabilité civile professionnelle",
+  "Lister 30 clubs européens cibles (EuroLeague, EuroCup, BCL) et leurs directeurs sportifs",
+  "Suivre l'EuroLeague et la BCL chaque semaine : budgets, effectifs, besoins",
+  "Repérer 20 jeunes joueurs (U18–U23) en Afrique francophone, France, Suisse",
+  "Signer tes 2 premiers joueurs",
+  "Créer une présence pro : site, LinkedIn, vidéos highlights de tes joueurs",
+  "Rédiger ton modèle de contrat d'image joueur–agence et le faire relire par un avocat",
+  "Lancer le plan image 90 jours pour ton premier joueur"]},
+ {when:"Phase 3",sub:"Juil. – déc. 2027",title:"Premiers placements + préparation NBA",tasks:[
+  "Placer au moins 1 joueur dans un club pro européen",
+  "Décider si tu passes la licence FFBB (clubs français) et t'inscrire à l'examen CNOSF",
+  "Préparer le dossier NBPA : preuve de diplôme ou d'expérience de négociation",
+  "Déposer la candidature NBPA dès l'ouverture (sept. 2027) et payer les $750",
+  "Étudier la CBA : salary cap, cap room, mid-level exception",
+  "Étudier la CBA : échanges, aprons, contrats rookies et two-way",
+  "Étudier le Règlement NBPA des agents (mandat SPAC, commissions)"]},
+ {when:"Phase 4",sub:"2028",title:"Certification NBA",tasks:[
+  "Passer l'examen NBPA à New York (janvier 2028)",
+  "Payer la cotisation au prorata ($1 250) puis $2 500 au 1ᵉʳ juillet",
+  "Assister au séminaire NBPA de mai",
+  "Inscrire un joueur à la Draft NBA ou le présenter en Summer League",
+  "Négocier un premier contrat EuroLeague"]},
+ {when:"Phase 5",sub:"2029 et après",title:"Développer le portefeuille",tasks:[
+  "Atteindre 10 joueurs pros sous contrat",
+  "Placer un joueur en NBA ou G League",
+  "Ajouter les contrats de sponsoring et d'image à ton offre",
+  "Renouveler chaque année licence FIBA (31 déc.) et NBPA (1ᵉʳ juil.)"]}
+];
+const MODS={sys:"Système FIBA",agent:"Agents",tr:"Transferts",min:"Mineurs",elig:"Éligibilité",nat:"Équipes nationales",lic:"Licences",bat:"BAT",eth:"Éthique & sanctions",test:"Le test",nba:"NBA"};
+const QUIZ=[
+ {m:"sys",q:"Où se trouve le siège de la FIBA ?",o:["Lausanne","Genève","Mies","Zurich"],a:2,e:"Siège à Mies (Patrick Baumann House of Basketball), près de Genève."},
+ {m:"sys",q:"Quel Livre du Règlement Intérieur traite des joueurs, transferts, agents et du BAT ?",o:["Livre 1","Livre 2","Livre 3","Livre 6"],a:2,e:"Livre 3 : Players and Officials."},
+ {m:"sys",q:"Quel Livre contient le Code de conduite et les sanctions ?",o:["Livre 1","Livre 3","Livre 4","Les Statuts"],a:0,e:"Livre 1 : General Provisions."},
+ {m:"sys",q:"Comment s'appelle le FIBA Information System ?",o:["FIBA Connect","MAP","FIBA Hub","BAT Online"],a:1,e:"Il est appelé « MAP »."},
+ {m:"sys",q:"Qui décide en première instance de la plupart des affaires disciplinaires ?",o:["Le Président","Le Secrétaire général","Le Central Board","Le BAT"],a:1,e:"Le Secrétaire général, qui peut renvoyer au Disciplinary Panel."},
+ {m:"sys",q:"Quelle conséquence a une fausse information déposée dans MAP ?",o:["Aucune","Infraction administrative, voire disciplinaire","Exclusion automatique de la FIBA","Amende fixe de CHF 50"],a:1,e:"C'est une infraction administrative qui peut être traitée comme disciplinaire."},
+
+ {m:"agent",q:"Qui peut obtenir une licence d'agent FIBA ?",o:["Une société","Une personne physique","Une fédération","Un club"],a:1,e:"Seule une personne physique. Elle peut travailler via une société mais reste seule responsable."},
+ {m:"agent",q:"Un joueur peut-il utiliser un agent non licencié FIBA pour un transfert international ?",o:["Oui si le club accepte","Oui s'il est avocat","Non, c'est interdit et sanctionnable","Oui pour les moins de 18 ans"],a:2,e:"Joueurs et clubs ne peuvent faire appel qu'à des agents licenciés FIBA."},
+ {m:"agent",q:"Qui ne peut PAS détenir une licence d'agent ?",o:["Un ancien joueur","Un dirigeant de club en poste","Un avocat","Un étudiant"],a:1,e:"Incompatibilité avec un poste dans un club, une fédération, une ligue ou la FIBA."},
+ {m:"agent",q:"Un agent peut-il représenter à la fois le joueur et le club dans la même transaction ?",o:["Oui avec accord écrit","Oui si la commission est partagée","Non, c'est un conflit d'intérêts","Oui en EuroLeague"],a:2,e:"Interdiction de représenter les deux parties dans la même transaction."},
+ {m:"agent",q:"Depuis le 5 décembre 2024, un club peut-il payer l'agent du joueur ?",o:["Oui, directement","Seulement via une clause du contrat","Non, ni directement ni indirectement","Oui si le joueur est mineur"],a:2,e:"L'agent n'est payé que par son client. Le joueur paie son agent."},
+ {m:"agent",q:"Sous quelle forme doit être le contrat entre l'agent et le joueur ?",o:["Oral suffit","Écrit","Électronique uniquement","Validé par la NBA"],a:1,e:"Toujours écrit, idéalement sur la base du contrat type FIBA."},
+ {m:"agent",q:"Combien d'agents licenciés un joueur peut-il avoir en même temps pour une opération ?",o:["Un seul","Deux","Trois","Illimité"],a:0,e:"Un seul agent à la fois."},
+ {m:"agent",q:"Peut-on démarcher un joueur pendant un camp d'entraînement ou une compétition ?",o:["Oui toujours","Non, surtout s'il a moins de 18 ans","Oui après 18 h","Seulement en Europe"],a:1,e:"Interdiction d'approcher les joueurs, en particulier mineurs, pendant camps et compétitions."},
+ {m:"agent",q:"Que doit contenir une demande de transfert concernant l'agent ?",o:["Rien","Son nom et son numéro de licence","Son adresse personnelle","Le montant de sa commission"],a:1,e:"La demande indique le nom et le numéro de licence de l'agent."},
+ {m:"agent",q:"Si la licence est retirée ou expirée depuis plus de 6 mois, que faut-il faire ?",o:["Payer une amende","Refaire le cours et le test","Rien, elle se réactive","Passer par la NBPA"],a:1,e:"Cours FIBA et test obligatoires avant toute réintégration."},
+ {m:"agent",q:"Un entraîneur membre de la WABC peut-il être agent ?",o:["Oui","Non","Seulement en Asie","Seulement pour les jeunes"],a:1,e:"Un coach membre de la WABC ne peut pas détenir de licence d'agent."},
+
+ {m:"tr",q:"Que signifie LoC ?",o:["Licence of Coach","Letter of Clearance","List of Clubs","Letter of Contract"],a:1,e:"Letter of Clearance : la lettre de sortie."},
+ {m:"tr",q:"La nouvelle fédération peut-elle licencier le joueur avant d'avoir la LoC ?",o:["Oui","Non","Oui pendant 7 jours","Seulement en 2ᵉ division"],a:1,e:"La LoC doit être obtenue avant de licencier le joueur."},
+ {m:"tr",q:"Une LoC peut-elle être conditionnelle ?",o:["Oui","Non","Seulement pour les mineurs","Seulement si le club l'exige"],a:1,e:"Elle ne peut être ni limitée ni conditionnelle."},
+ {m:"tr",q:"Un club peut-il bloquer la LoC à cause d'un salaire impayé au joueur ?",o:["Oui","Non","Oui pendant 30 jours","Seulement avec accord du BAT"],a:1,e:"Un litige d'argent club/joueur ne justifie ni retard ni refus."},
+ {m:"tr",q:"Délai de réponse de la fédération d'origine ?",o:["3 jours","6 jours","7 jours","14 jours"],a:1,e:"6 jours après que la demande est complète."},
+ {m:"tr",q:"Délai pour contester une réponse négative ?",o:["24 heures","3 jours","6 jours","10 jours"],a:1,e:"La fédération demandeuse a 3 jours."},
+ {m:"tr",q:"En cas de litige, en combien de jours la FIBA décide-t-elle ?",o:["3","6","7","30"],a:2,e:"7 jours, sauf circonstances particulières."},
+ {m:"tr",q:"Lequel est un motif de refus de la LoC ?",o:["Le joueur change de pays","L'agent n'est pas licencié FIBA","Le club est en 2ᵉ division","Le joueur a plus de 30 ans"],a:1,e:"Art. 3-67 : agent non licencié FIBA."},
+ {m:"tr",q:"Quel est le statut d'un transfert sans LoC ?",o:["Valide mais sanctionné","Illégal et nul","Provisoire","Valide après 45 jours"],a:1,e:"Illégal et invalide, avec sanctions possibles pour tous les acteurs."},
+ {m:"tr",q:"À combien de fédérations une LoC peut-elle être délivrée en même temps ?",o:["Une","Deux","Trois","Sans limite"],a:0,e:"Une seule fédération à la fois."},
+
+ {m:"min",q:"À partir de quel âge un transfert international est-il en principe autorisé ?",o:["14 ans","16 ans","18 ans","21 ans"],a:2,e:"Pas de transfert international avant 18 ans sauf cas spécial."},
+ {m:"min",q:"Qui peut accorder une exception pour un mineur ?",o:["Le club","L'agent","Le Secrétaire général","Les parents seuls"],a:2,e:"Le Secrétaire général."},
+ {m:"min",q:"Entre quels âges une première inscription à l'étranger exige-t-elle une LoC ?",o:["12–16","14–18","16–20","18–23"],a:1,e:"Entre 14 et 18 ans."},
+ {m:"min",q:"Pour un mineur transféré pour le basket, jusqu'à quel âge reste-t-il disponible pour son équipe nationale d'origine ?",o:["18 ans","20 ans","23 ans","25 ans"],a:2,e:"Jusqu'à 23 ans."},
+ {m:"min",q:"Durée du premier contrat pro proposable à 18 ans par le club formateur ?",o:["1 à 2 ans","1 à 4 ans","3 à 5 ans","Libre"],a:1,e:"De 1 à 4 ans."},
+ {m:"min",q:"Le joueur peut-il être licencié avant le paiement de l'indemnité de formation ?",o:["Oui","Non","Oui avec caution","Oui s'il est majeur"],a:1,e:"Pas de licence tant que l'indemnité n'est pas payée."},
+ {m:"min",q:"Délai pour demander l'indemnité pour un jeune joueur ?",o:["6 jours","2 semaines","30 jours","6 mois"],a:1,e:"2 semaines après la première demande de LoC."},
+
+ {m:"elig",q:"Avant quel âge faut-il avoir le passeport pour ne pas être joueur restreint (né ailleurs) ?",o:["16 ans","18 ans","21 ans","23 ans"],a:1,e:"Passeport obtenu avant 18 ans, ou liens significatifs avec le pays."},
+ {m:"elig",q:"Combien de joueurs restreints par équipe nationale sur la liste finale ?",o:["0","1","2","3"],a:1,e:"Un seul."},
+ {m:"elig",q:"Quand le statut national devient-il irrévocable ?",o:["À la naissance","Dès une liste finale","À 18 ans","Après 5 matchs"],a:1,e:"Dès que le joueur figure sur une Final Team Delegation Roster."},
+ {m:"elig",q:"Combien de fois un joueur peut-il changer de statut national ?",o:["Jamais","Une fois","Deux fois","Sans limite"],a:1,e:"Une seule fois."},
+ {m:"elig",q:"Délai d'effet d'un changement de statut approuvé ?",o:["14 jours","30 jours","45 jours","90 jours"],a:2,e:"45 jours après notification."},
+ {m:"elig",q:"Condition pour changer d'équipe nationale ?",o:["Dernière sélection il y a au moins 5 ans","Avoir 30 ans","Payer CHF 1 000","Accord de l'agent"],a:0,e:"5 ans depuis la dernière sélection, max 5 matchs officiels, et accord ou décision du Secrétaire général."},
+
+ {m:"nat",q:"Un club peut-il refuser de libérer un joueur convoqué pour une compétition FIBA ?",o:["Oui si le contrat le prévoit","Non","Oui en play-offs","Oui s'il paie une amende"],a:1,e:"Obligation de libérer ; une clause contraire est une violation."},
+ {m:"nat",q:"La demande de mise à disposition doit être envoyée combien de temps avant ?",o:["7 jours","14 jours","30 jours","60 jours"],a:2,e:"Au moins 30 jours avant."},
+ {m:"nat",q:"Quand le joueur doit-il arriver en sélection ?",o:["24 h avant le 1ᵉʳ match","48 h avant le 1ᵉʳ match","7 jours avant","Le jour du match"],a:1,e:"48 h avant, retour au club dans les 24 h après le dernier match."},
+ {m:"nat",q:"Qui paie le voyage du joueur convoqué ?",o:["Le club","Le joueur","La fédération qui convoque","La FIBA"],a:2,e:"La fédération qui convoque."},
+ {m:"nat",q:"Sanction du joueur qui refuse sans justificatif médical ?",o:["Rien","10 jours sans jouer en club","Amende de CHF 100","Retrait de licence"],a:1,e:"Interdiction de jouer en club 10 jours supplémentaires."},
+
+ {m:"lic",q:"Quelle licence pour un étranger en 1ʳᵉ division nationale ?",o:["Licence A","Licence B","Licence C","Aucune"],a:0,e:"Licence A, délivrée par le Bureau régional."},
+ {m:"lic",q:"Quelle licence pour jouer une compétition de clubs FIBA ?",o:["A","B","LoC","NBPA"],a:1,e:"Licence B, délivrée par la FIBA."},
+ {m:"lic",q:"Un joueur peut-il être licencié dans deux fédérations à la fois ?",o:["Oui","Non","Oui en 3x3","Oui s'il est binational"],a:1,e:"Non."},
+
+ {m:"bat",q:"Où siège le BAT ?",o:["Lausanne","Genève","Mies","Munich"],a:1,e:"Genève, Suisse."},
+ {m:"bat",q:"Combien d'arbitres jugent une affaire au BAT ?",o:["Un arbitre unique","Trois","Cinq","Un jury"],a:0,e:"Un arbitre unique nommé par le président du BAT."},
+ {m:"bat",q:"Que signifie « ex aequo et bono » ?",o:["Selon le droit suisse","En équité","Selon le droit du club","À la majorité"],a:1,e:"L'arbitre décide selon l'équité."},
+ {m:"bat",q:"Langue de l'arbitrage BAT ?",o:["Français","Anglais","Langue du demandeur","Allemand"],a:1,e:"Anglais."},
+ {m:"bat",q:"Condition pour aller au BAT ?",o:["Être licencié FIBA","Une clause d'arbitrage écrite","Accord de la fédération","Un litige de plus de CHF 50 000"],a:1,e:"Les parties doivent avoir accepté le BAT par écrit."},
+ {m:"bat",q:"Une sentence BAT est-elle définitive ?",o:["Non, appel au TAS automatique","Oui, dès sa communication","Après 30 jours","Seulement si FIBA la valide"],a:1,e:"Définitive et obligatoire dès sa communication."},
+ {m:"bat",q:"Que risque un club qui ne paie pas une sentence BAT ?",o:["Rien","Interdiction d'enregistrer des joueurs","Exclusion des JO","Relégation automatique"],a:1,e:"Amendes et interdiction d'enregistrement, sur demande à la FIBA."},
+
+ {m:"eth",q:"Amende disciplinaire maximale pour une personne physique ?",o:["CHF 10 000","CHF 50 000","CHF 100 000","CHF 300 000"],a:2,e:"CHF 100 000 (art. 1-173)."},
+ {m:"eth",q:"Amende disciplinaire maximale pour un club ou une fédération ?",o:["CHF 100 000","CHF 150 000","CHF 300 000","CHF 1 million"],a:2,e:"CHF 300 000 (art. 1-172)."},
+ {m:"eth",q:"Une infraction administrative peut-elle faire l'objet d'un recours ?",o:["Oui","Non","Oui au TAS","Oui au BAT"],a:1,e:"Non (art. 1-165)."},
+ {m:"eth",q:"Délai de prescription des poursuites disciplinaires ?",o:["2 ans","5 ans","10 ans","Aucun"],a:2,e:"10 ans (art. 1-171)."},
+ {m:"eth",q:"Le signalement est OBLIGATOIRE pour…",o:["Les retards","Les paris et manipulations de matchs","Les erreurs de statistiques","Les transferts tardifs"],a:1,e:"Obligatoire pour conflits d'intérêts, paris/manipulations et protection des personnes."},
+ {m:"eth",q:"Peut-on enregistrer une réunion FIBA sans autorisation ?",o:["Oui","Non, accord écrit préalable requis","Oui si on est agent","Oui en audio seulement"],a:1,e:"Interdit sans accord écrit préalable."},
+
+ {m:"test",q:"Combien coûte l'inscription au test d'agent FIBA ?",o:["CHF 150","CHF 350","CHF 750","CHF 1 000"],a:1,e:"Frais administratifs non remboursables de CHF 350."},
+ {m:"test",q:"Combien de temps dure le test FIBA ?",o:["30 minutes","45 minutes","60 minutes","2 heures"],a:1,e:"45 minutes, sans document."},
+ {m:"test",q:"Seuil de réussite habituel ?",o:["50 %","60 %","75 %","80 %"],a:1,e:"60 %, confirmé sur place."},
+ {m:"test",q:"Dans quelle langue se passe le test ?",o:["Langue du candidat","Français ou anglais","Anglais uniquement","Anglais ou espagnol"],a:2,e:"Uniquement en anglais, en présentiel."},
+ {m:"test",q:"Quand expire la licence d'agent FIBA ?",o:["Un an après le test","Le 30 juin","Le 31 décembre","Tous les deux ans"],a:2,e:"Le 31 décembre de chaque année."},
+ {m:"test",q:"Un avocat doit-il passer le test (depuis 2026) ?",o:["Oui","Non, mais il suit le cours FIBA","Non, aucune démarche","Seulement s'il n'a jamais été agent"],a:1,e:"Dispensé du test, mais cours et frais obligatoires."},
+ {m:"test",q:"Un agent certifié NBPA est-il dispensé du test FIBA ?",o:["Oui","Non","Seulement en Europe","Après 3 ans"],a:1,e:"Il doit assister à la présentation et réussir le test."},
+
+ {m:"nba",q:"Où et quand se passe l'examen NBPA ?",o:["En ligne","New York, en janvier","Las Vegas, en juillet","Genève, en décembre"],a:1,e:"New York, une fois par an en janvier."},
+ {m:"nba",q:"Frais de candidature NBPA ?",o:["$250","$750","$2 500","$5 000"],a:1,e:"$750, puis $1 250 au prorata après réussite."},
+ {m:"nba",q:"Commission maximale d'un agent NBPA sur un contrat NBA ?",o:["3 %","4 %","10 %","15 %"],a:1,e:"4 %."}
+];
+const KEY="agentfiba_v1";
+let state={};
+try{state=JSON.parse(localStorage.getItem(KEY)||"{}")||{}}catch(e){state={}}
+let remoteRef=null,writing=false,dirty=false,wTimer=null;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
+  if(remoteRef){clearTimeout(wTimer);wTimer=setTimeout(pushRemote,800)}}
+async function pushRemote(){
+  if(!remoteRef)return;if(writing){dirty=true;return}
+  writing=true;
+  try{const body={...state};delete body.tab;await remoteRef.set({s:body,at:Date.now()});setSync("ok")}
+  catch(e){setSync("local")}
+  writing=false;if(dirty){dirty=false;pushRemote()}
+}
+function setSync(k){return;const el=document.getElementById("sync");if(!el)return;
+  if(k==="ok"){el.className="pill ok";el.textContent="Synchronisé sur tous tes appareils"}
+  else if(k==="wait"){el.className="pill warn";el.textContent="Synchronisation…"}
+  else{el.className="pill warn";el.textContent="Progression enregistrée sur cet appareil"}}
+
+// Compte à rebours
+(function(){
+  const target=new Date("2026-12-11T09:00:00+01:00");
+  const d=Math.max(0,Math.ceil((target-new Date())/86400000));
+  document.getElementById("digits").innerHTML=String(d).padStart(2,"0").split("").map(c=>`<span class="digit">${c}</span>`).join("");
+})();
+
+// Onglets
+const tabs=[...document.querySelectorAll(".tabs button")];
+function show(t){tabs.forEach(b=>b.setAttribute("aria-selected",b.dataset.t===t));
+  ["cours","licence","nba","euro","image","plan","quiz"].forEach(id=>document.getElementById(id).hidden=id!==t);
+  state.tab=t;save()}
+tabs.forEach(b=>b.addEventListener("click",()=>show(b.dataset.t)));
+
+// Programme
+const total=PHASES.reduce((n,p)=>n+p.tasks.length,0);
+function renderPlan(){
+  const box=document.getElementById("phases");box.innerHTML="";
+  PHASES.forEach((p,pi)=>{
+    const done=p.tasks.filter((_,ti)=>state["t"+pi+"_"+ti]).length;
+    const el=document.createElement("div");el.className="card";
+    el.innerHTML=`<div class="phase"><div class="when">${p.when}<span>${p.sub}</span></div>
+      <div style="min-width:0;display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline"><h3>${p.title}</h3><span class="pill ${done===p.tasks.length?'ok':'warn'}">${done}/${p.tasks.length}</span></div>
+        ${p.tasks.map((t,ti)=>{const id="t"+pi+"_"+ti;const c=!!state[id];
+          return `<div class="task ${c?'done':''}"><input type="checkbox" id="${id}" ${c?'checked':''}><label for="${id}">${t}</label></div>`}).join("")}
+      </div></div>`;
+    box.appendChild(el);
+  });
+  box.querySelectorAll("input").forEach(i=>i.addEventListener("change",()=>{state[i.id]=i.checked;save();renderPlan();updateProg()}));
+}
+function updateProg(){
+  const n=Object.keys(state).filter(k=>/^t\d+_\d+$/.test(k)&&state[k]).length;
+  const pct=Math.round(n/total*100);
+  document.getElementById("pbar").style.width=pct+"%";
+  document.getElementById("ptxt").textContent=pct+" % · "+n+"/"+total;
+}
+
+// Quiz façon fiches : maîtrise par question, explication toujours affichée
+function qid(q){let h=0;for(const c of q.q){h=(h*31+c.charCodeAt(0))|0}return "q"+(h>>>0).toString(36)}
+QUIZ.forEach(q=>q.id=qid(q));
+function qs(id){state.qs=state.qs||{};return state.qs[id]||(state.qs[id]={d:0,r:0,n:0})}
+function qget(id){return (state.qs&&state.qs[id])||{d:0,r:0,n:0}}
+const MASTER=4;
+let deck=[],qi=0,score=0,answered=false,mode="train",timer=null,endAt=0,examLog=[];
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function mastered(list){return list.filter(q=>qget(q.id).d>=MASTER).length}
+function pool(m){
+  if(m==="train"||m==="exam")return QUIZ;
+  if(m==="review")return QUIZ.filter(q=>{const s=qget(q.id);return s.n>0&&s.d<MASTER});
+  if(m==="star")return QUIZ.filter(q=>qget(q.id).star);
+  return QUIZ.filter(q=>q.m===m);
+}
+function renderFilters(){
+  const f=document.getElementById("filters");
+  const chips=[["train","Entraînement",QUIZ],["exam","Examen blanc · 30 q · 45 min",null],["review","À revoir",pool("review")],["star","★ Favoris",pool("star")],
+    ...Object.entries(MODS).map(([k,l])=>[k,l,pool(k)])];
+  f.innerHTML=chips.map(([k,l,list])=>{
+    const tag=list===null?"":(k==="review"||k==="star")?` · ${list.length}`:` · ${mastered(list)}/${list.length}`;
+    return `<button data-m="${k}" aria-pressed="${k===mode}">${l}${tag}</button>`}).join("");
+  f.querySelectorAll("button").forEach(b=>b.onclick=()=>{mode=b.dataset.m;start()});
+  const m=mastered(QUIZ);document.getElementById("qhead").innerHTML=
+    `<div class="bar"><i style="width:${Math.round(m/QUIZ.length*100)}%;background:var(--ok)"></i></div><b>${m} / ${QUIZ.length} maîtrisées</b>`;
+}
+function start(){
+  clearInterval(timer);timer=null;examLog=[];
+  let p=pool(mode);
+  if(mode==="exam"){deck=shuffle(p).slice(0,30);endAt=Date.now()+45*60000;timer=setInterval(tick,1000)}
+  else{deck=shuffle(p).sort((a,b)=>qget(a.id).d-qget(b.id).d)}
+  qi=0;score=0;renderFilters();renderQ();
+}
+function left(){const s=Math.max(0,Math.round((endAt-Date.now())/1000));return String(Math.floor(s/60)).padStart(2,"0")+":"+String(s%60).padStart(2,"0")}
+function tick(){const t=document.getElementById("clock");if(t)t.textContent=left();if(Date.now()>=endAt){clearInterval(timer);timer=null;qi=deck.length;renderQ()}}
+function dots(d){return `<span class="dots" aria-label="Maîtrise ${d} sur ${MASTER}">${Array.from({length:MASTER},(_,i)=>`<i class="${i<d?'on':''}"></i>`).join("")}</span>`}
+function renderQ(){
+  const c=document.getElementById("qcard");
+  if(!deck.length){
+    c.innerHTML=`<p class="quiz-q">${mode==="star"?"Aucun favori pour l'instant.":"Rien à revoir pour l'instant."}</p>
+      <p class="note">${mode==="star"?"Touche l'étoile sur une question pour la retrouver ici.":"Les questions que tu rates arrivent ici jusqu'à ce que tu les maîtrises (4 réponses justes de suite)."}</p>`;return;
+  }
+  if(qi>=deck.length){
+    clearInterval(timer);timer=null;
+    const pct=Math.round(score/deck.length*100);
+    const k="best_"+mode;state[k]=Math.max(pct,state[k]||0);save();renderFilters();
+    const review=mode==="exam"?examLog.map((x,i)=>`<div class="rev ${x.ok?'ok':'ko'}"><p><b>${i+1}. ${x.q.q}</b></p>
+      <p>${x.ok?"✓ Juste":"✗ Ta réponse : "+x.q.o[x.pick]} · Bonne réponse : <b>${x.q.o[x.q.a]}</b></p><p class="expl-box">${x.q.e}</p></div>`).join(""):"";
+    c.innerHTML=`<span class="eyebrow">Résultat</span><h2>${score} / ${deck.length} · ${pct} %</h2>
+      <p>${pct>=60?(pct>=85?"Niveau prêt pour le test. Garde ce score de façon régulière.":"Tu passerais le seuil de 60 %. Vise 85 % pour avoir de la marge."):"En dessous du seuil de 60 %. Passe par « À revoir » puis recommence."}</p>
+      <p class="note">Meilleur score sur ce mode : ${state[k]} %</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="restart">Recommencer</button>${pool("review").length?'<button class="btn ghost" id="toreview">Revoir mes erreurs</button>':''}</div>
+      ${review?'<h3 style="margin-top:8px">Correction</h3>'+review:''}`;
+    document.getElementById("restart").onclick=start;
+    const tr=document.getElementById("toreview");if(tr)tr.onclick=()=>{mode="review";start()};
+    return;
+  }
+  const q=deck[qi];answered=false;const s=qget(q.id);
+  const exam=mode==="exam";
+  c.innerHTML=`<div class="qtop"><span class="eyebrow">${MODS[q.m]}</span>
+      <span style="display:flex;gap:6px;align-items:center">${exam?`<span class="pill warn" id="clock">${left()}</span>`:""}
+      <button class="star" id="star" aria-pressed="${!!s.star}" aria-label="Favori">${s.star?"★":"☆"}</button></span></div>
+    <p class="quiz-q">${q.q}</p>
+    <div class="verdict" id="verdict">${dots(s.d)}<span id="vtext">${s.n?`Juste ${s.r} fois sur ${s.n}`:"Nouvelle question"}</span></div>
+    <div class="opts">${q.o.map((o,i)=>`<button data-i="${i}"><span class="let">${"ABCD"[i]}</span><span>${o}</span></button>`).join("")}</div>
+    <div id="after" hidden>
+      <div class="expl-head">Explication</div>
+      <p class="expl-box">${q.e}</p>
+      <button class="btn ghost wide" id="similar">Questions similaires · ${MODS[q.m]}</button>
+    </div>
+    <div class="qfoot"><div class="qprog"><div class="bar"><i style="width:${Math.round(qi/deck.length*100)}%"></i></div><b>${qi+1} / ${deck.length}</b></div>
+      <button class="next" id="next" aria-label="Question suivante" disabled>→</button></div>`;
+  document.getElementById("star").onclick=e=>{const st=qs(q.id);st.star=!st.star;e.currentTarget.textContent=st.star?"★":"☆";e.currentTarget.setAttribute("aria-pressed",st.star);save();renderFilters()};
+  document.getElementById("similar").onclick=()=>{mode=q.m;start()};
+  const nx=document.getElementById("next");nx.onclick=()=>{qi++;renderQ();document.getElementById("qcard").scrollIntoView({block:"start",behavior:"smooth"})};
+  c.querySelectorAll(".opts button").forEach(b=>b.onclick=()=>{
+    if(answered)return;answered=true;const i=+b.dataset.i;const ok=i===q.a;
+    const st=qs(q.id);st.n++;if(ok){st.r++;st.d=Math.min(MASTER,st.d+1);score++}else st.d=0;
+    save();
+    if(exam){examLog.push({q,pick:i,ok});b.classList.add("picked");nx.disabled=false;return}
+    if(!ok)b.classList.add("wrong");
+    c.querySelectorAll(".opts button")[q.a].classList.add("right");
+    const v=document.getElementById("verdict");v.classList.add(ok?"ok":"ko");
+    v.innerHTML=`${dots(st.d)}<span class="vt">${ok?"✓ Correct":"✗ Faux"}</span>`;
+    document.getElementById("after").hidden=false;nx.disabled=false;
+    renderFilters();
+  });
+}
+renderPlan();updateProg();renderFilters();start();
+
+const IMG=[
+ {when:"Jours 1–15",sub:"Diagnostic",tasks:["Audit de tous les comptes et recherche Google","Nettoyage des anciens posts","Lecture des clauses d'image du contrat club","Signature du contrat d'image joueur–agence"]},
+ {when:"Jours 16–30",sub:"Identité",tasks:["Écrire la phrase de positionnement","Shooting photo pro (terrain + lifestyle)","Mêmes nom d'utilisateur et bio sur tous les réseaux","Vidéo highlights de moins de 3 minutes"]},
+ {when:"Jours 31–60",sub:"Contenu",tasks:["Calendrier éditorial sur les 4 piliers","Mettre en place la chaîne de montage automatisée","Séance de media training","3 à 4 posts par semaine pendant 4 semaines"]},
+ {when:"Jours 61–90",sub:"Monétisation",tasks:["Dossier média d'une page","Contacter 10 marques locales et diaspora","Approcher un équipementier","Bilan : abonnés, engagement, premiers partenariats"]}
+];
+function renderImg(){
+  const box=document.getElementById("imgplan");
+  box.innerHTML=IMG.map((p,pi)=>`<div class="phase" style="padding-top:10px"><div class="when">${p.when}<span>${p.sub}</span></div><div style="min-width:0">${
+    p.tasks.map((t,ti)=>{const id="img"+pi+"_"+ti;const c=!!state[id];return `<div class="task ${c?'done':''}"><input type="checkbox" id="${id}" ${c?'checked':''}><label for="${id}">${t}</label></div>`}).join("")}</div></div>`).join("");
+  box.querySelectorAll("input").forEach(i=>i.addEventListener("change",()=>{state[i.id]=i.checked;save();renderImg()}));
+}
+renderImg();
+show(state.tab||"cours");
+
+
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}</script></body></html>
