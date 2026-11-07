@@ -99,6 +99,7 @@ a{color:var(--accent)}
 /* Quiz façon fiches */
 .qcard{gap:14px}
 .qtop{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.lang{font-family:var(--mono);font-size:12px;font-weight:500;background:var(--bg);border:1px solid var(--line);color:var(--fg);border-radius:99px;height:40px;padding:0 12px;cursor:pointer}
 .star{font-size:22px;line-height:1;background:none;border:1px solid var(--line);color:var(--warn);border-radius:99px;width:40px;height:40px;cursor:pointer}
 .quiz-q{font-size:18px;line-height:1.4}
 .verdict{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:10px;background:var(--bg);border:1px solid var(--line);font-size:14px;color:var(--muted)}
@@ -145,12 +146,12 @@ details.mod[open] summary::after{content:"–"}
 
   <div class="board" aria-live="polite">
     <div>
-      <div class="lbl">Prochain test FIBA Europe</div>
-      <div class="what">Mies (Suisse) · 11 déc. 2026</div>
+      <div class="lbl">Ton prochain test FIBA</div>
+      <div class="what">Session 2027 · date pas encore publiée</div>
     </div>
     <div>
-      <div class="digits" id="digits"></div>
-      <small>jours restants</small>
+      <div class="digits"><span class="digit">2</span><span class="digit">0</span><span class="digit">2</span><span class="digit">7</span></div>
+      <small>Europe : en général 1 session par an</small>
     </div>
   </div>
 
@@ -398,8 +399,9 @@ details.mod[open] summary::after{content:"–"}
   <section id="licence">
     <div class="card">
       <span class="pill urgent">Action immédiate</span>
-      <h3>Inscris-toi maintenant pour le test du 11 décembre</h3>
-      <p>Les sessions ont une capacité maximale et un minimum de participants. La FIBA recommande de s'inscrire tôt. Le test Europe a lieu en général une fois par an, donc rater décembre peut coûter un an.</p>
+      <h3>Signale ton intérêt pour la prochaine session</h3>
+      <p>Tu ne peux pas passer le test du 11 décembre 2026 à Mies. La FIBA n'a encore publié aucune date pour 2027. En Europe et aux Amériques, il y a en général une session par an ; en Asie et en Océanie, selon la demande. Tu peux t'inscrire dans la région de ton choix.</p>
+      <p>Sur la page d'inscription, indique gratuitement ton intérêt pour une session. La FIBA t'écrira dès qu'une date et un lieu sont fixés. Écris aussi à l'équipe des agents pour demander les dates 2027. Profite du temps gagné pour viser 85 % aux examens blancs.</p>
       <p class="res">Inscription : <a href="https://map-public.fiba.basketball/agent-tests/season" target="_blank" rel="noopener">map-public.fiba.basketball/agent-tests/season</a> · Contact : <span style="font-family:var(--mono)">agents@fiba.basketball</span></p>
     </div>
 
@@ -648,7 +650,7 @@ details.mod[open] summary::after{content:"–"}
     <div class="prog" id="qhead"></div>
     <div class="filters" id="filters"></div>
     <div class="card qcard" id="qcard"></div>
-    <p class="note">Questions basées sur les informations officielles FIBA et NBPA. Le vrai test FIBA est en anglais : entraîne-toi aussi avec le texte original du FIBA IR.</p>
+    <p class="note">Questions basées sur les informations officielles FIBA et NBPA. Les questions s'affichent en anglais, comme au vrai test. Le bouton EN / FR montre la version française. L'examen blanc est toujours en anglais.</p>
   </section>
 
   <footer class="note" style="border-top:1px solid var(--line);padding-top:12px">
@@ -660,8 +662,10 @@ details.mod[open] summary::after{content:"–"}
 
 <script>
 const PHASES=[
- {when:"Phase 1",sub:"Nov – déc. 2026",title:"Décrocher la licence FIBA",tasks:[
-  "S'inscrire au test FIBA du 11 décembre (Mies) et payer les CHF 350",
+ {when:"Phase 1",sub:"Nov. 2026 – 2027",title:"Décrocher la licence FIBA",tasks:[
+  "Indiquer ton intérêt pour une session 2027 sur le site FIBA (gratuit)",
+  "Écrire à agents@fiba.basketball pour demander les dates 2027",
+  "S'inscrire à la session confirmée et payer les CHF 350",
   "Demander l'extrait de casier judiciaire et le faire traduire en anglais",
   "Rédiger un CV en anglais orienté sport / négociation",
   "Télécharger le FIBA Internal Regulations (Livres 1 et 3)",
@@ -670,7 +674,7 @@ const PHASES=[
   "Lire Transferts internationaux et lettre de sortie (Livre 3)",
   "Lire le chapitre BAT et le chapitre « Players' Agents » (édition 2026)",
   "Réussir 3 examens blancs de suite avec au moins 85 %",
-  "Réserver trajet et hôtel pour Mies",
+  "Réserver trajet et hôtel pour la session",
   "Passer le test et payer la cotisation de licence"]},
  {when:"Phase 2",sub:"Janv. – juin 2027",title:"Lancer l'agence",tasks:[
   "Créer la structure juridique de l'agence (Suisse ou France)",
@@ -806,11 +810,7 @@ function setSync(k){return;const el=document.getElementById("sync");if(!el)retur
   else{el.className="pill warn";el.textContent="Progression enregistrée sur cet appareil"}}
 
 // Compte à rebours
-(function(){
-  const target=new Date("2026-12-11T09:00:00+01:00");
-  const d=Math.max(0,Math.ceil((target-new Date())/86400000));
-  document.getElementById("digits").innerHTML=String(d).padStart(2,"0").split("").map(c=>`<span class="digit">${c}</span>`).join("");
-})();
+
 
 // Onglets
 const tabs=[...document.querySelectorAll(".tabs button")];
@@ -846,6 +846,95 @@ function updateProg(){
 // Quiz façon fiches : maîtrise par question, explication toujours affichée
 function qid(q){let h=0;for(const c of q.q){h=(h*31+c.charCodeAt(0))|0}return "q"+(h>>>0).toString(36)}
 QUIZ.forEach(q=>q.id=qid(q));
+const EN=[
+// sys
+["Where is FIBA's headquarters?",["Lausanne","Geneva","Mies","Zurich"]],
+["Which Book of the FIBA Internal Regulations covers players, transfers, agents and the BAT?",["Book 1","Book 2","Book 3","Book 6"]],
+["Which Book contains the Code of Conduct and the sanctions?",["Book 1","Book 3","Book 4","The General Statutes"]],
+["What is the FIBA Information System called?",["FIBA Connect","MAP","FIBA Hub","BAT Online"]],
+["Who decides most disciplinary matters at first instance?",["The President","The Secretary General","The Central Board","The BAT"]],
+["What is the consequence of submitting false information in MAP?",["None","An administrative offence, possibly a disciplinary one","Automatic expulsion from FIBA","A fixed fine of CHF 50"]],
+// agent
+["Who can obtain a FIBA Agent licence?",["A company","A natural person","A National Member Federation","A club"]],
+["May a player use an agent who is not FIBA-licensed for an international transfer?",["Yes, if the club agrees","Yes, if the agent is a lawyer","No, it is prohibited and subject to sanctions","Yes, for players under 18"]],
+["Who may NOT hold a FIBA Agent licence?",["A former player","A club official currently in office","A lawyer","A student"]],
+["May an agent represent both the player and the club in the same transaction?",["Yes, with written consent","Yes, if the commission is shared","No, it is a conflict of interest","Yes, in the EuroLeague"]],
+["Since 5 December 2024, may a club pay the player's agent?",["Yes, directly","Only through a clause in the player contract","No, neither directly nor indirectly","Yes, if the player is a minor"]],
+["In what form must the contract between an agent and a player be?",["An oral agreement is enough","In writing","Electronic only","Approved by the NBA"]],
+["How many licensed agents may a player have at the same time for one transaction?",["Only one","Two","Three","Unlimited"]],
+["May an agent approach a player during a training camp or a competition?",["Yes, always","No, especially if the player is under 18","Yes, after 6 pm","Only in Europe"]],
+["What must a transfer request state about the agent?",["Nothing","The agent's name and licence number","The agent's home address","The agent's commission amount"]],
+["If a licence has been withdrawn or expired for more than 6 months, what must the agent do?",["Pay a fine","Attend the course and pass the test again","Nothing, it reactivates automatically","Apply through the NBPA"]],
+["May a coach who is a WABC member hold a FIBA Agent licence?",["Yes","No","Only in Asia","Only for youth players"]],
+// tr
+["What does LoC stand for?",["Licence of Coach","Letter of Clearance","List of Clubs","Letter of Contract"]],
+["May the new National Member Federation license the player before obtaining the LoC?",["Yes","No","Yes, for 7 days","Only in the second division"]],
+["May a Letter of Clearance be conditional?",["Yes","No","Only for minors","Only if the club requests it"]],
+["May a club block the LoC because of unpaid salary owed to the player?",["Yes","No","Yes, for 30 days","Only with the BAT's approval"]],
+["How long does the federation of origin have to respond to a LoC request?",["3 days","6 days","7 days","14 days"]],
+["How long does the requesting federation have to challenge a negative response?",["24 hours","3 days","6 days","10 days"]],
+["In a dispute over a LoC, within how many days does FIBA decide?",["3","6","7","30"]],
+["Which of these is a ground for refusing a Letter of Clearance?",["The player changes country","The agent is not FIBA-licensed","The club plays in the second division","The player is over 30"]],
+["What is the status of a transfer made without a LoC?",["Valid but sanctioned","Illegal and invalid","Provisional","Valid after 45 days"]],
+["To how many federations may a LoC be issued at the same time?",["One","Two","Three","No limit"]],
+// min
+["From what age is an international transfer allowed in principle?",["14","16","18","21"]],
+["Who may grant an exception for a minor's international transfer?",["The club","The agent","The Secretary General","The parents alone"]],
+["Between which ages does a first registration abroad require a LoC?",["12–16","14–18","16–20","18–23"]],
+["A minor transferred for basketball reasons remains available for the national team of his country of origin until what age?",["18","20","23","25"]],
+["At 18, what length of first professional contract may the training club offer?",["1 to 2 years","1 to 4 years","3 to 5 years","Any length"]],
+["May the player be licensed before the training compensation is paid?",["Yes","No","Yes, with a deposit","Yes, if he is an adult"]],
+["Within what deadline must compensation for a young player be requested?",["6 days","2 weeks","30 days","6 months"]],
+// elig
+["Before what age must a player born elsewhere have obtained the passport not to be a Restricted Player?",["16","18","21","23"]],
+["How many Restricted Players may a national team have on its final roster?",["0","1","2","3"]],
+["When does a player's national status become irrevocable?",["At birth","Once he appears on a final team roster","At 18","After 5 games"]],
+["How many times may a player change his national status?",["Never","Once","Twice","Unlimited"]],
+["How long after notification does an approved change of national status take effect?",["14 days","30 days","45 days","90 days"]],
+["Which is a condition for changing national team?",["Last selection at least 5 years ago","Being 30 years old","Paying CHF 1,000","The agent's consent"]],
+// nat
+["May a club refuse to release a player called up for a FIBA competition?",["Yes, if the contract allows it","No","Yes, during the play-offs","Yes, if it pays a fine"]],
+["How long before the release period must the release request be sent?",["7 days","14 days","30 days","60 days"]],
+["When must the player report to the national team?",["24 hours before the first game","48 hours before the first game","7 days before","On the day of the game"]],
+["Who pays the travel costs of a player called up to the national team?",["The club","The player","The federation calling him up","FIBA"]],
+["What is the sanction for a player who refuses a call-up without a medical certificate?",["Nothing","He may not play for his club for an extra 10 days","A CHF 100 fine","Withdrawal of his licence"]],
+// lic
+["Which licence does a foreign player need in a national first division?",["Licence A","Licence B","Licence C","None"]],
+["Which licence does a player need for a FIBA club competition?",["A","B","LoC","NBPA"]],
+["May a player be licensed with two federations at the same time?",["Yes","No","Yes, in 3x3","Yes, if he has dual nationality"]],
+// bat
+["Where is the BAT seated?",["Lausanne","Geneva","Mies","Munich"]],
+["How many arbitrators decide a BAT case?",["A single arbitrator","Three","Five","A jury"]],
+["What does \"ex aequo et bono\" mean?",["According to Swiss law","In equity (general considerations of justice and fairness)","According to the club's national law","By majority vote"]],
+["What is the language of BAT arbitration?",["French","English","The claimant's language","German"]],
+["What is required to bring a case to the BAT?",["Being FIBA-licensed","A written arbitration clause","The federation's consent","A claim above CHF 50,000"]],
+["Is a BAT award final?",["No, it is automatically appealed to CAS","Yes, from the moment it is communicated","After 30 days","Only if FIBA validates it"]],
+["What may a club face if it does not comply with a BAT award?",["Nothing","A registration ban","Exclusion from the Olympics","Automatic relegation"]],
+// eth
+["What is the maximum disciplinary fine for a natural person?",["CHF 10,000","CHF 50,000","CHF 100,000","CHF 300,000"]],
+["What is the maximum disciplinary fine for a club or federation?",["CHF 100,000","CHF 150,000","CHF 300,000","CHF 1 million"]],
+["May an administrative offence be appealed?",["Yes","No","Yes, to CAS","Yes, to the BAT"]],
+["What is the limitation period for disciplinary proceedings?",["2 years","5 years","10 years","None"]],
+["Reporting is MANDATORY for…",["Delays","Betting and competition manipulation","Statistics errors","Late transfers"]],
+["May you record a FIBA meeting without permission?",["Yes","No, prior written consent is required","Yes, if you are an agent","Yes, audio only"]],
+// test
+["How much is the registration fee for the FIBA Agent test?",["CHF 150","CHF 350","CHF 750","CHF 1,000"]],
+["How long does the FIBA Agent test last?",["30 minutes","45 minutes","60 minutes","2 hours"]],
+["What is the usual pass mark?",["50%","60%","75%","80%"]],
+["In what language is the test taken?",["The candidate's language","French or English","English only","English or Spanish"]],
+["When does a FIBA Agent licence expire?",["One year after the test","On 30 June","On 31 December each year","Every two years"]],
+["Since 2026, must a lawyer pass the test?",["Yes","No, but he must attend the FIBA course","No, nothing is required","Only if he has never been an agent"]],
+["Is an NBPA-certified agent exempt from the FIBA test?",["Yes","No","Only in Europe","After 3 years"]],
+// nba
+["Where and when is the NBPA exam held?",["Online","New York, in January","Las Vegas, in July","Geneva, in December"]],
+["What is the NBPA application fee?",["$250","$750","$2,500","$5,000"]],
+["What is the maximum commission of an NBPA agent on an NBA player contract?",["3%","4%","10%","15%"]]
+];
+
+if(EN.length===QUIZ.length)QUIZ.forEach((q,i)=>{q.qe=EN[i][0];q.oe=EN[i][1]});
+function L(){return mode==="exam"||state.lang!=="fr"?"en":"fr"}
+function tq(q){return L()==="en"&&q.qe?q.qe:q.q}
+function to(q){return L()==="en"&&q.oe?q.oe:q.o}
 function qs(id){state.qs=state.qs||{};return state.qs[id]||(state.qs[id]={d:0,r:0,n:0})}
 function qget(id){return (state.qs&&state.qs[id])||{d:0,r:0,n:0}}
 const MASTER=4;
@@ -889,8 +978,9 @@ function renderQ(){
     clearInterval(timer);timer=null;
     const pct=Math.round(score/deck.length*100);
     const k="best_"+mode;state[k]=Math.max(pct,state[k]||0);save();renderFilters();
-    const review=mode==="exam"?examLog.map((x,i)=>`<div class="rev ${x.ok?'ok':'ko'}"><p><b>${i+1}. ${x.q.q}</b></p>
-      <p>${x.ok?"✓ Juste":"✗ Ta réponse : "+x.q.o[x.pick]} · Bonne réponse : <b>${x.q.o[x.q.a]}</b></p><p class="expl-box">${x.q.e}</p></div>`).join(""):"";
+    const review=mode==="exam"?examLog.map((x,i)=>`<div class="rev ${x.ok?'ok':'ko'}"><p><b>${i+1}. ${x.q.qe||x.q.q}</b></p>
+      <p>${x.ok?"✓ Juste":"✗ Ta réponse : "+(x.q.oe||x.q.o)[x.pick]} · Bonne réponse : <b>${(x.q.oe||x.q.o)[x.q.a]}</b></p>
+      <p class="note">En français : ${x.q.q} → ${x.q.o[x.q.a]}</p><p class="expl-box">${x.q.e}</p></div>`).join(""):"";
     c.innerHTML=`<span class="eyebrow">Résultat</span><h2>${score} / ${deck.length} · ${pct} %</h2>
       <p>${pct>=60?(pct>=85?"Niveau prêt pour le test. Garde ce score de façon régulière.":"Tu passerais le seuil de 60 %. Vise 85 % pour avoir de la marge."):"En dessous du seuil de 60 %. Passe par « À revoir » puis recommence."}</p>
       <p class="note">Meilleur score sur ce mode : ${state[k]} %</p>
@@ -904,18 +994,21 @@ function renderQ(){
   const exam=mode==="exam";
   c.innerHTML=`<div class="qtop"><span class="eyebrow">${MODS[q.m]}</span>
       <span style="display:flex;gap:6px;align-items:center">${exam?`<span class="pill warn" id="clock">${left()}</span>`:""}
+      ${exam?"":`<button class="lang" id="lang" aria-label="Changer de langue">${L()==="en"?"EN":"FR"}</button>`}
       <button class="star" id="star" aria-pressed="${!!s.star}" aria-label="Favori">${s.star?"★":"☆"}</button></span></div>
-    <p class="quiz-q">${q.q}</p>
+    <p class="quiz-q" lang="${L()}">${tq(q)}</p>
     <div class="verdict" id="verdict">${dots(s.d)}<span id="vtext">${s.n?`Juste ${s.r} fois sur ${s.n}`:"Nouvelle question"}</span></div>
-    <div class="opts">${q.o.map((o,i)=>`<button data-i="${i}"><span class="let">${"ABCD"[i]}</span><span>${o}</span></button>`).join("")}</div>
+    <div class="opts">${to(q).map((o,i)=>`<button data-i="${i}"><span class="let">${"ABCD"[i]}</span><span>${o}</span></button>`).join("")}</div>
     <div id="after" hidden>
-      <div class="expl-head">Explication</div>
+      <div class="expl-head">Explication${L()==="en"?" (en français)":""}</div>
+      ${L()==="en"?`<p class="note">Question en français : ${q.q} → <b>${q.o[q.a]}</b></p>`:""}
       <p class="expl-box">${q.e}</p>
       <button class="btn ghost wide" id="similar">Questions similaires · ${MODS[q.m]}</button>
     </div>
     <div class="qfoot"><div class="qprog"><div class="bar"><i style="width:${Math.round(qi/deck.length*100)}%"></i></div><b>${qi+1} / ${deck.length}</b></div>
       <button class="next" id="next" aria-label="Question suivante" disabled>→</button></div>`;
   document.getElementById("star").onclick=e=>{const st=qs(q.id);st.star=!st.star;e.currentTarget.textContent=st.star?"★":"☆";e.currentTarget.setAttribute("aria-pressed",st.star);save();renderFilters()};
+  const lb=document.getElementById("lang");if(lb)lb.onclick=()=>{state.lang=L()==="en"?"fr":"en";save();renderQ()};
   document.getElementById("similar").onclick=()=>{mode=q.m;start()};
   const nx=document.getElementById("next");nx.onclick=()=>{qi++;renderQ();document.getElementById("qcard").scrollIntoView({block:"start",behavior:"smooth"})};
   c.querySelectorAll(".opts button").forEach(b=>b.onclick=()=>{
