@@ -1,0 +1,612 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="English Court"><meta name="theme-color" content="#0f1a2b"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" href="icon-192.png"><title>English Court</title><style>:root{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout : appli de poche, onglets défilants en haut, une carte d'exercice au centre */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --fg:#141922; --muted:#5e6878; --line:#dde2ea;
+  --accent:#d4561c; --accent-soft:#fbe7dc; --ok:#2f7d4f; --ok-soft:#e1f1e7; --ko:#b8322a; --ko-soft:#f8e1de;
+  --info:#1f5fae; --info-soft:#e2ecf8; --board:#0f1a2b; --board-fg:#eef3fa;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e131b; --surface:#171e29; --fg:#e9eef5; --muted:#98a3b3; --line:#2a3443;
+  --accent:#f0773d; --accent-soft:#3a2216; --ok:#5cc184; --ok-soft:#183324; --ko:#f07a70; --ko-soft:#3a1a17;
+  --info:#7cb2ee; --info-soft:#16263b; --board:#070c14; --board-fg:#eef3fa; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e131b; --surface:#171e29; --fg:#e9eef5; --muted:#98a3b3; --line:#2a3443;
+  --accent:#f0773d; --accent-soft:#3a2216; --ok:#5cc184; --ok-soft:#183324; --ko:#f07a70; --ko-soft:#3a1a17;
+  --info:#7cb2ee; --info-soft:#16263b; --board:#070c14; --board-fg:#eef3fa; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 48px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--display);margin:0;line-height:1.05;text-wrap:balance}
+h1{font-size:clamp(32px,8vw,44px);font-weight:800;text-transform:uppercase}
+h2{font-size:24px;font-weight:700;text-transform:uppercase}
+h3{font-size:19px;font-weight:700}
+p{margin:0}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.muted{color:var(--muted)} .note{font-size:13px;color:var(--muted)}
+.tabs{display:flex;gap:6px;overflow-x:auto;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5;padding-block:8px}
+.tabs button{font-family:var(--display);font-weight:700;font-size:16px;text-transform:uppercase;letter-spacing:.03em;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:99px;padding:8px 14px;cursor:pointer;white-space:nowrap;flex:none}
+.tabs button[aria-selected="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+section{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.btn{font-family:var(--display);font-weight:700;text-transform:uppercase;font-size:17px;letter-spacing:.03em;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:11px 16px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.btn.ok{background:var(--ok)} .btn.ko{background:var(--ko)} .btn.mid{background:var(--muted)}
+.btn:disabled{opacity:.4;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.bar{flex:1;height:8px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.chips button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:99px;padding:5px 11px;cursor:pointer;white-space:nowrap;flex:none}
+.chips button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.say{font:inherit;font-size:14px;font-weight:600;background:var(--info-soft);color:var(--info);border:1px solid var(--info);border-radius:99px;padding:6px 12px;cursor:pointer;flex:none}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:99px;background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--accent-soft);color:var(--accent)}
+ul.clean{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px}
+/* Accueil */
+.hero{background:var(--board);color:var(--board-fg);border-radius:14px;padding:18px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.hero .lv{font-family:var(--display);font-weight:800;font-size:46px;line-height:1;color:#ff8a4c}
+.hero .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+.streak{text-align:right}.streak b{font-family:var(--display);font-size:40px;line-height:1;display:block}
+.goal{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;cursor:pointer;background:var(--surface);text-align:left;font:inherit;color:var(--fg)}
+.goal b{font-family:var(--display);font-size:18px;text-transform:uppercase}
+.goal.done{border-color:var(--ok);background:var(--ok-soft)}
+.goal .bar i{background:var(--ok)}
+/* Cartes */
+.flash{min-height:230px;justify-content:center;align-items:center;text-align:center}
+.flash .w{font-family:var(--display);font-weight:800;font-size:clamp(34px,9vw,52px);line-height:1.05}
+.flash .tr{font-size:20px;font-weight:600}
+.flash .ex{font-style:italic;color:var(--muted)}
+.rate{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.rate .btn{font-size:15px;padding:12px 6px}
+/* Quiz */
+.q{font-size:18px;font-weight:600;line-height:1.4}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opts button{text-align:left;font:inherit;font-size:16px;background:var(--bg);border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:12px;cursor:pointer}
+.opts button.right{background:var(--ok-soft);border-color:var(--ok)}
+.opts button.wrong{background:var(--ko-soft);border-color:var(--ko)}
+.expl{background:var(--info-soft);border-left:3px solid var(--info);border-radius:8px;padding:10px 12px}
+.lesson{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;justify-content:space-between;gap:10px;align-items:center;cursor:pointer;background:var(--surface);text-align:left;font:inherit;color:var(--fg);width:100%}
+.lesson b{font-family:var(--display);font-size:18px}
+.dots{display:inline-flex;gap:4px}.dots i{width:10px;height:10px;border-radius:50%;background:var(--line);display:block}.dots i.on{background:var(--ok)}
+/* Phrases */
+.ph{border-top:1px solid var(--line);padding-top:10px;display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.ph:first-of-type{border-top:none;padding-top:0}
+.ph .en{font-weight:600}
+.ph .fr{font-size:14px;color:var(--muted)}
+.hid{filter:blur(6px);cursor:pointer;user-select:none}
+/* Dictée */
+input[type=text],textarea{width:100%;font:inherit;font-size:16px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px}
+textarea{min-height:90px;resize:vertical}
+.diff span{padding:0 2px;border-radius:4px}
+.diff .okw{background:var(--ok-soft);color:var(--ok)} .diff .kow{background:var(--ko-soft);color:var(--ko);text-decoration:line-through}
+.diff .miss{background:var(--accent-soft);color:var(--accent)}
+/* Chat */
+.chat{display:flex;flex-direction:column;gap:10px}
+.msg{max-width:88%;padding:10px 12px;border-radius:12px;display:flex;flex-direction:column;gap:6px}
+.msg.me{align-self:flex-end;background:var(--accent-soft);border:1px solid var(--accent)}
+.msg.ai{align-self:flex-start;background:var(--surface);border:1px solid var(--line)}
+.fb{font-size:13px;background:var(--info-soft);border-radius:8px;padding:8px 10px}
+.prompt{font-family:var(--mono);font-size:12px;white-space:pre-wrap;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;max-height:220px;overflow:auto}
+.term{display:flex;justify-content:space-between;gap:10px;align-items:center;border-top:1px solid var(--line);padding-top:8px}
+.term:first-of-type{border-top:none;padding-top:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header style="display:flex;flex-direction:column;gap:6px">
+    <span class="eyebrow">Anglais pour agent de basket</span>
+    <h1>English Court</h1>
+  </header>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <main id="view"></main>
+</div>
+
+<script>
+const CATS={agent:"Agent & contrats",nego:"Négociation",court:"Sur le terrain",tv:"Commentaires TV",office:"Bureau & e-mails",life:"Vie de tous les jours"};
+const VOCAB=[
+// agent & contrats
+["agent","agent (de joueurs)","He is a FIBA-licensed agent.","agent"],
+["agency","agence","I want to build my own agency.","agent"],
+["to represent","représenter","I represent three young players.","agent"],
+["client","client (joueur représenté)","My client is looking for a new team.","agent"],
+["contract","contrat","He signed a two-year contract.","agent"],
+["to sign","signer","The club wants to sign him this summer.","agent"],
+["deal","accord, contrat","We closed the deal last night.","agent"],
+["salary","salaire","His salary is paid every month.","agent"],
+["net / gross","net / brut","Is this salary net or gross?","agent"],
+["buyout clause","clause de rachat","There is a buyout clause of 200,000 euros.","agent"],
+["to extend","prolonger","The club wants to extend his contract.","agent"],
+["extension","prolongation","He agreed to a three-year extension.","agent"],
+["free agent","joueur libre (sans contrat)","He becomes a free agent in July.","agent"],
+["to release","libérer (un joueur)","The team released him last week.","agent"],
+["transfer","transfert","The transfer was completed on Monday.","agent"],
+["commission","commission","My commission is paid by the player.","agent"],
+["image rights","droits d'image","Image rights are not included in the contract.","agent"],
+["endorsement","contrat de sponsoring","He has an endorsement deal with a shoe brand.","agent"],
+["draft","draft (sélection NBA)","He entered the NBA Draft this year.","agent"],
+["rookie","joueur débutant (1re année)","He was the best rookie of the season.","agent"],
+["scout","recruteur","Three NBA scouts came to watch him.","agent"],
+["prospect","espoir, jeune talent","He is one of the best prospects in Europe.","agent"],
+["roster","effectif","The team has two open spots on its roster.","agent"],
+["general manager (GM)","directeur sportif","I have a meeting with the general manager.","agent"],
+["to scout","repérer, observer (un joueur)","We scouted him in Spain last season.","agent"],
+// négociation
+["offer","offre","We received an offer from Valencia.","nego"],
+["counteroffer","contre-proposition","We will send a counteroffer tomorrow.","nego"],
+["to negotiate","négocier","I am negotiating his new contract.","nego"],
+["leverage","moyen de pression, avantage","Two offers give us more leverage.","nego"],
+["deadline","date limite","The deadline is Friday at noon.","nego"],
+["terms","conditions","We agree on the main terms.","nego"],
+["to agree on","se mettre d'accord sur","We agreed on the salary.","nego"],
+["bonus","prime","There is a bonus if the team reaches the playoffs.","nego"],
+["guaranteed","garanti","The first year is fully guaranteed.","nego"],
+["reluctant","réticent","The club is reluctant to pay more.","nego"],
+["to fall through","échouer (un accord)","The deal fell through at the last minute.","nego"],
+["stalemate","impasse","The talks reached a stalemate.","nego"],
+["fair","juste, correct","We think this offer is fair.","nego"],
+["to turn down","refuser","He turned down the first offer.","nego"],
+["to back out","se retirer","The club backed out of the deal.","nego"],
+["in writing","par écrit","Please send me the offer in writing.","nego"],
+["to follow up","faire le suivi, relancer","I will follow up next week.","nego"],
+["housing","logement","Housing and a car are included.","nego"],
+["medical (exam)","visite médicale","He will do the medical on Tuesday.","nego"],
+["option year","année en option","The second year is a team option.","nego"],
+// terrain
+["guard","arrière / meneur","He is a combo guard.","court"],
+["point guard","meneur","The point guard runs the offense.","court"],
+["forward","ailier","He plays small forward.","court"],
+["center","pivot","The center protects the rim.","court"],
+["rebound","rebond","He grabbed twelve rebounds.","court"],
+["assist","passe décisive","She had ten assists tonight.","court"],
+["turnover","balle perdue","Too many turnovers cost them the game.","court"],
+["steal","interception","He made a steal and scored.","court"],
+["block","contre","What a block at the rim!","court"],
+["free throw","lancer franc","He made both free throws.","court"],
+["three-pointer","tir à trois points","He hit five three-pointers.","court"],
+["rim","cercle, arceau","He attacks the rim with power.","court"],
+["paint","raquette","He dominates in the paint.","court"],
+["bench","banc","He comes off the bench.","court"],
+["starter","titulaire","He is a starter for the first time.","court"],
+["injury","blessure","He is out with a knee injury.","court"],
+["injured","blessé","He was injured in the second quarter.","court"],
+["quarter","quart-temps","They won the third quarter by ten.","court"],
+["overtime","prolongation","The game went to overtime.","court"],
+["playoffs","phase finale, playoffs","They qualified for the playoffs.","court"],
+// TV
+["from downtown","de loin (à trois points)","He hits it from downtown!","tv"],
+["and-one","panier + faute (lancer bonus)","And-one! He gets the bucket and the foul.","tv"],
+["buzzer-beater","tir au buzzer","A buzzer-beater to win the game!","tv"],
+["fast break","contre-attaque","They score on the fast break.","tv"],
+["pick and roll","pick and roll (écran + roulé)","They run the pick and roll again.","tv"],
+["double-double","double-double (10+ dans 2 stats)","He finished with a double-double.","tv"],
+["clutch","décisif dans les moments chauds","He is clutch in the fourth quarter.","tv"],
+["momentum","dynamique","The momentum has changed.","tv"],
+["to trail","être mené","They trail by eight at halftime.","tv"],
+["lead","avance","They have a ten-point lead.","tv"],
+["halftime","mi-temps","At halftime, Boston leads by six.","tv"],
+["streak","série (victoires/défaites)","They are on a five-game winning streak.","tv"],
+["trade deadline","date limite des échanges","Will he be traded before the deadline?","tv"],
+["breakout season","saison de révélation","He is having a breakout season.","tv"],
+["to live up to the hype","être à la hauteur des attentes","Can the rookie live up to the hype?","tv"],
+// bureau & e-mails
+["meeting","réunion, rendez-vous","Can we schedule a meeting?","office"],
+["to schedule","planifier","Let's schedule a call for Monday.","office"],
+["available","disponible","Are you available on Thursday?","office"],
+["call","appel","I'll give you a call tomorrow.","office"],
+["attached","en pièce jointe","Please find attached his highlights.","office"],
+["highlights","vidéo des meilleures actions","Here are his highlights from last season.","office"],
+["regarding","concernant","I am writing regarding your point guard.","office"],
+["to look forward to","avoir hâte de","I look forward to hearing from you.","office"],
+["to confirm","confirmer","Could you confirm the date?","office"],
+["to reach out","contacter, prendre contact","I am reaching out about a player.","office"],
+["Best regards","Cordialement","Best regards, Al Hassan Cissé","office"],
+["accounting","comptabilité","I work in accounting.","office"],
+["company","entreprise","I run my own company.","office"],
+["to run (a business)","diriger (une entreprise)","I run an online business.","office"],
+["background","parcours","He has a strong academic background.","office"],
+// vie quotidienne
+["to live","vivre, habiter","I live in Lausanne.","life"],
+["to grow up","grandir","I grew up in Abidjan.","life"],
+["to commute","faire le trajet (travail)","I commute by train every day.","life"],
+["weekend","week-end","What did you do this weekend?","life"],
+["to be into","être passionné par","I'm really into basketball.","life"],
+["to catch a game","aller voir / regarder un match","Let's catch a game on Saturday.","life"],
+["to get along","bien s'entendre","We get along very well.","life"],
+["busy","occupé","I'm very busy this week.","life"],
+["to look for","chercher","I'm looking for a new apartment.","life"],
+["by the way","au fait","By the way, did you watch the game?","life"],
+];
+
+const GRAMMAR=[
+ {id:"g1",t:"you / your / yours",why:"Ton erreur au test : « you guard of you teams ».",
+  body:`<p><b>you</b> = tu, vous (pronom). <b>your</b> = ton, ta, tes, votre, vos (devant un nom). <b>yours</b> = le tien, le vôtre (seul, sans nom).</p>
+  <ul class="clean"><li><b>You</b> are the general manager.</li><li>Donovan is <b>your</b> guard.</li><li>This decision is <b>yours</b>.</li></ul>
+  <p>Même logique : my / mine, his, her / hers, our / ours, their / theirs.</p>`,
+  q:[["Donovan Mitchell is ___ best player.",["you","your","yours"],1],["Are ___ available on Monday?",["you","your","yours"],0],["The final decision is ___.",["your","you","yours"],2],["Thank you for ___ time.",["you","your","yours"],1],["I will send ___ the contract tomorrow.",["your","you","yours"],1]]},
+ {id:"g2",t:"L'ordre des mots : l'adjectif avant le nom",why:"Ton erreur : « an agent FIBA ».",
+  body:`<p>En anglais, ce qui décrit le nom se place <b>avant</b> lui. On dit l'inverse du français.</p>
+  <ul class="clean"><li>un agent FIBA → a <b>FIBA agent</b></li><li>un contrat de deux ans → a <b>two-year contract</b> (pas de « s » à year)</li><li>un jeune meneur français → a <b>young French point guard</b></li><li>une offre de l'EuroLeague → a <b>EuroLeague offer</b></li></ul>`,
+  q:[["Choose the correct sentence:",["I am an agent FIBA.","I am a FIBA agent.","I am agent of FIBA."],1],["He signed a ___.",["contract of three years","three-years contract","three-year contract"],2],["She is a ___.",["guard young","young guard","guard who young"],1],["We received an ___.",["offer EuroLeague","EuroLeague offer","offer of EuroLeague club"],1],["It's a ___ meeting.",["two-hour","two-hours","hours two"],0]]},
+ {id:"g3",t:"I work ou I'm working ?",why:"Ton erreur : « I am working to the office ».",
+  body:`<p><b>Présent simple</b> (I work) : une habitude, ton métier, un fait général.<br><b>Présent continu</b> (I'm working) : en ce moment précis, ou un projet temporaire.</p>
+  <ul class="clean"><li>I <b>work</b> in accounting. (mon métier)</li><li>I<b>'m working</b> on a contract right now. (en ce moment)</li><li>He <b>plays</b> for Cleveland. / He<b>'s playing</b> very well this season.</li></ul>
+  <p>Avec he / she / it au présent simple : ajoute <b>-s</b> (he works, she plays).</p>`,
+  q:[["What do you do? — I ___ in an office.",["work","am working","works"],0],["Sorry, I can't talk, I ___ a meeting right now.",["have","am having","has"],1],["He ___ for the Cavaliers.",["play","plays","playing"],1],["This season, he ___ better than ever.",["plays","is playing","play"],1],["She usually ___ the train to work.",["takes","is taking","take"],0]]},
+ {id:"g4",t:"Prépositions : in, at, on",why:"Tes erreurs : « to the office », « available the 12.20 ».",
+  body:`<p><b>Temps</b> : <b>at</b> + heure (at 8 pm) · <b>on</b> + jour ou date (on Monday, on December 20) · <b>in</b> + mois, année, saison (in July, in 2027, in the summer).</p>
+  <p><b>Lieu</b> : <b>in</b> + un espace (in Lausanne, in an office, in Spain) · <b>at</b> + un point précis (at the arena, at the airport, at work) · <b>for</b> + l'employeur (I work for a bank, he plays for Boston).</p>
+  <p>Dates en anglais américain : <b>December 20, 2026</b> ou 12/20/2026 (mois d'abord).</p>`,
+  q:[["Are you available ___ December 20?",["in","on","at"],1],["The game starts ___ 7:30.",["at","on","in"],0],["I live ___ Lausanne.",["at","on","in"],2],["He plays ___ the Cleveland Cavaliers.",["for","at","in"],0],["His contract ends ___ June.",["on","in","at"],1],["I work ___ an office.",["to","in","on"],1]]},
+ {id:"g5",t:"because, so, but : toujours une phrase complète",why:"Ton erreur : « because. Want to build… »",
+  body:`<p>Après <b>because</b> (parce que), <b>so</b> (donc), <b>but</b> (mais), il faut un <b>sujet + verbe</b>. En anglais, le sujet ne disparaît jamais.</p>
+  <ul class="clean"><li>I want to be a FIBA agent <b>because I</b> love basketball.</li><li>He is injured, <b>so he</b> can't play.</li><li>The offer is good, <b>but it</b> is not guaranteed.</li></ul>
+  <p>Pour donner une raison avec un nom : <b>because of</b> (because of his injury).</p>`,
+  q:[["I want to be an agent because ___ to help young players.",["want","I want","wanting"],1],["He missed the game ___ his injury.",["because","because of","so"],1],["It's raining, ___ the game is cancelled.",["so","because","but"],0],["The salary is high, ___ there is no bonus.",["so","but","because"],1],["Choose the correct sentence:",["Is a good offer.","It is a good offer.","Good offer is."],1]]},
+ {id:"g6",t:"Present perfect : for et since",why:"Niveau B1 que tu maîtrises : à consolider pour l'oral.",
+  body:`<p><b>have / has + participe passé</b> pour une action commencée dans le passé qui continue, ou une expérience.</p>
+  <ul class="clean"><li>I <b>have worked</b> in accounting <b>for</b> five years. (durée)</li><li>He <b>has played</b> in Spain <b>since</b> 2024. (point de départ)</li><li><b>Have you ever been</b> to New York?</li></ul>
+  <p>Avec une date précise du passé, on utilise le passé simple : I <b>signed</b> him <b>in</b> 2025.</p>`,
+  q:[["I have known him ___ ten years.",["since","for","during"],1],["She has lived in Paris ___ 2020.",["for","since","from"],1],["I ___ him last year.",["have met","met","meet"],1],["___ you ever been to the US?",["Did","Have","Are"],1],["He ___ three games since Monday.",["has played","played","plays"],0]]},
+ {id:"g7",t:"Les conditions : if",why:"Ton point faible : B2 (1/7). Indispensable pour négocier.",
+  body:`<p><b>Réel</b> : if + présent → will. <i>If you <b>offer</b> a guaranteed year, he <b>will sign</b>.</i></p>
+  <p><b>Imaginaire</b> : if + passé → would. <i>If I <b>were</b> you, I <b>would accept</b>.</i> (on dit « were » pour toutes les personnes)</p>
+  <p><b>Regret, passé</b> : if + had + participe → would have. <i>If he <b>had stayed</b> healthy, he <b>would have played</b> in the NBA.</i></p>
+  <p>Jamais <b>will</b> juste après if.</p>`,
+  q:[["If the club ___ the bonus, we will sign today.",["accepts","will accept","accepted"],0],["If I ___ you, I would take the offer.",["am","were","will be"],1],["If he had trained harder, he ___ drafted.",["would be","would have been","will be"],1],["What would you do if they ___ you?",["release","released","will release"],1],["If you send the offer today, I ___ it to my client tonight.",["will show","would show","show"],0]]},
+ {id:"g8",t:"Le passif",why:"Très utilisé dans les médias et les contrats.",
+  body:`<p><b>be + participe passé</b> quand l'action compte plus que celui qui la fait.</p>
+  <ul class="clean"><li>He <b>was signed</b> by Barcelona. (il a été signé)</li><li>The contract <b>will be sent</b> tomorrow.</li><li>He <b>has been traded</b> to Dallas.</li><li>Players <b>are paid</b> every month.</li></ul>`,
+  q:[["The player ___ by three clubs last summer.",["contacted","was contacted","has contact"],1],["The contract ___ tomorrow.",["will send","will be sent","sends"],1],["He ___ to Dallas yesterday.",["was traded","traded","is trade"],0],["Salaries ___ at the end of the month.",["pay","are paid","paid"],1],["The draft ___ every June.",["is held","holds","held"],0]]},
+ {id:"g9",t:"Être poli : would, could, may",why:"Ton e-mail au directeur sportif.",
+  body:`<p>En anglais professionnel, on adoucit les demandes :</p>
+  <ul class="clean"><li><b>Could you</b> send me the offer? (Pourriez-vous…)</li><li><b>Would you be available</b> for a call on Monday?</li><li><b>I would like to</b> discuss his future.</li><li><b>May I</b> ask about the bonus structure?</li><li><b>I'd appreciate it if</b> you could confirm by Friday.</li></ul>
+  <p>Évite « I want » avec un club : dis « I would like ».</p>`,
+  q:[["Choose the most professional:",["I want a meeting.","Give me a meeting.","Would you be available for a meeting?"],2],["___ you send me his medical report?",["Could","Do","Are"],0],["I ___ to discuss the terms.",["would like","want like","would liking"],0],["I'd appreciate it if you ___ confirm by Friday.",["can","could","will"],1],["___ I ask a question about the bonus?",["May","Do","Am"],0]]},
+ {id:"g10",t:"must, have to, should, don't have to",why:"Pour expliquer des obligations à un joueur ou un club.",
+  body:`<ul class="clean"><li><b>must / have to</b> = obligation : The player <b>must</b> pass the medical.</li><li><b>should</b> = conseil : You <b>should</b> accept this offer.</li><li><b>don't have to</b> = pas obligé : You <b>don't have to</b> decide today.</li><li><b>mustn't</b> = interdit : You <b>mustn't</b> sign with two agents.</li></ul>`,
+  q:[["You ___ decide today, take your time.",["mustn't","don't have to","must"],1],["A player ___ use an unlicensed agent.",["mustn't","doesn't have to","should"],0],["I think you ___ ask for a bonus.",["should","mustn't","don't have to"],0],["He ___ pass the medical before signing.",["has to","don't have to","should not"],0],["Agents ___ renew their FIBA licence every year.",["must","mustn't","don't have to"],0]]},
+];
+
+const PHRASES=[
+ {g:"Te présenter",l:[["My name is Al Hassan Cissé. I'm a FIBA-licensed agent.","Je m'appelle Al Hassan Cissé. Je suis agent licencié FIBA."],["I represent young players from Africa and Europe.","Je représente de jeunes joueurs d'Afrique et d'Europe."],["I'm based in Lausanne, Switzerland.","Je suis basé à Lausanne, en Suisse."],["I run my own agency.","Je dirige ma propre agence."],["Nice to meet you. Thank you for your time.","Ravi de vous rencontrer. Merci pour votre temps."]]},
+ {g:"Au téléphone",l:[["Hi, this is Al Hassan Cissé calling about your roster.","Bonjour, c'est Al Hassan Cissé, j'appelle au sujet de votre effectif."],["Is this a good time to talk?","C'est un bon moment pour parler ?"],["Could you repeat that, please?","Pourriez-vous répéter, s'il vous plaît ?"],["Could you speak a little more slowly?","Pourriez-vous parler un peu plus lentement ?"],["I'll send you an email to confirm.","Je vous envoie un e-mail pour confirmer."],["Let me check with my client and get back to you.","Je vérifie avec mon joueur et je reviens vers vous."]]},
+ {g:"E-mails",l:[["I'm reaching out regarding your point guard position.","Je vous contacte au sujet de votre poste de meneur."],["Please find attached his highlights and stats.","Vous trouverez en pièce jointe ses meilleures actions et ses statistiques."],["Would you be available for a call next week?","Seriez-vous disponible pour un appel la semaine prochaine ?"],["I look forward to hearing from you.","Dans l'attente de votre réponse."],["Thank you for your quick reply.","Merci pour votre réponse rapide."],["Best regards,","Cordialement,"]]},
+ {g:"Négociation",l:[["We appreciate the offer, but it's below his market value.","Nous apprécions l'offre, mais elle est en dessous de sa valeur."],["Is there any flexibility on the salary?","Y a-t-il une marge de manœuvre sur le salaire ?"],["We would need the first year to be fully guaranteed.","Il nous faudrait la première année entièrement garantie."],["Could we add a bonus for reaching the playoffs?","Pourrait-on ajouter une prime en cas de playoffs ?"],["He has another offer on the table.","Il a une autre offre sur la table."],["What is your deadline?","Quelle est votre date limite ?"],["Can you send me the offer in writing?","Pouvez-vous m'envoyer l'offre par écrit ?"],["I think we have a deal.","Je pense que nous avons un accord."]]},
+ {g:"Réunion",l:[["Thank you for meeting with me today.","Merci de me recevoir aujourd'hui."],["Let me tell you a little about my player.","Laissez-moi vous parler un peu de mon joueur."],["He fits your system very well.","Il correspond très bien à votre système de jeu."],["What are you looking for at this position?","Que recherchez-vous à ce poste ?"],["Let's stay in touch.","Restons en contact."]]},
+ {g:"Avec ton joueur",l:[["How are you feeling after the game?","Comment tu te sens après le match ?"],["Three clubs are interested in you.","Trois clubs s'intéressent à toi."],["This is the best option for your career.","C'est la meilleure option pour ta carrière."],["Take your time, you don't have to decide today.","Prends ton temps, tu n'es pas obligé de décider aujourd'hui."],["Stay focused and keep working hard.","Reste concentré et continue à travailler dur."]]},
+];
+
+const DICT=[
+ ["A2","I live in Lausanne and I work in accounting."],
+ ["A2","The game starts at eight o'clock tonight."],
+ ["A2","My favorite player is Donovan Mitchell."],
+ ["A2","He plays for the Cleveland Cavaliers."],
+ ["B1","I want to become a FIBA agent because I love basketball."],
+ ["B1","He scored thirty points and grabbed ten rebounds."],
+ ["B1","Are you available for a meeting on Monday?"],
+ ["B1","The club wants to extend his contract for two more years."],
+ ["B1","I have been an agent for three years."],
+ ["B1","Please find attached his highlights from last season."],
+ ["B1","He was injured in the second quarter."],
+ ["B2","If you offer a guaranteed first year, he will sign today."],
+ ["B2","The deal fell through at the last minute."],
+ ["B2","We appreciate the offer, but it is below his market value."],
+ ["B2","He has been traded to Dallas before the deadline."],
+ ["B2","Is there any flexibility on the salary?"],
+ ["B2","They are on a five-game winning streak."],
+ ["C1","Had he stayed healthy, he would have been drafted."],
+ ["C1","Executives doubt that the rookie can live up to the hype."],
+ ["C1","The negotiations reached a stalemate over the buyout clause."],
+];
+
+const TVMISSIONS=[
+ "Pendant le match, note 5 mots que les commentateurs répètent souvent. Cherche-les dans ton vocabulaire.",
+ "Regarde une conférence de presse d'après-match (YouTube : nom de l'équipe + « postgame »). Note 3 phrases que dit le joueur.",
+ "Pendant un temps mort, répète à voix haute la dernière phrase du commentateur, avec le même ton.",
+ "Après le match, résume-le à voix haute en anglais en 5 phrases : qui a gagné, le score, le meilleur joueur, un moment clé.",
+ "Regarde 10 minutes d'une émission d'analyse (Inside the NBA, NBA Today, First Take). Note une opinion et dis si tu es d'accord, en anglais.",
+ "Repère 3 expressions de commentaire de l'onglet « Méthode TV » pendant le match. Coche-les quand tu les entends.",
+ "Regarde un quart-temps en disant à voix haute ce qui se passe, comme un commentateur : « He drives… he passes… he scores! »",
+];
+const TVTERMS=[["He drains it!","Il le met (tir réussi)"],["From way downtown!","De très loin !"],["And one!","Panier + faute"],["Count it!","Le panier compte !"],["He's heating up.","Il prend feu, il enchaîne"],["What a dime!","Quelle passe !"],["He got swatted.","Il s'est fait contrer"],["Off the glass.","Avec la planche"],["Nothing but net.","Ficelle (sans toucher le cercle)"],["They're in the bonus.","Ils sont en pénalité (lancers à chaque faute)"],["Timeout on the floor.","Temps mort demandé"],["He's in foul trouble.","Il est chargé de fautes"],["A clutch bucket.","Un panier décisif"],["Turnover!","Balle perdue !"],["They're running away with it.","Ils sont en train de creuser l'écart"],["It's a one-possession game.","Une seule possession d'écart"],["He takes it coast to coast.","Il traverse tout le terrain seul"],["Posterized!","Dunk sur un défenseur (humilié)"],["Full-court press.","Pressing tout terrain"],["Back-to-back threes.","Deux tirs à trois points de suite"]];
+
+const SCENARIOS=[
+ {id:"gm",t:"Négocier avec un directeur sportif",fr:"Claude joue le directeur sportif d'un club d'EuroCup. Tu présentes ton joueur et tu négocies le salaire.",role:"You are Marco, general manager of a European basketball club (EuroCup level). The user is a young FIBA agent pitching his client, a 22-year-old point guard. Be realistic: ask about stats, salary expectations, push back on price, mention budget limits."},
+ {id:"press",t:"Interview par un journaliste",fr:"Claude joue un journaliste sportif qui t'interroge sur ton agence et tes joueurs.",role:"You are Sarah, a basketball journalist for an English-speaking website. Interview the user about his new player agency, his goals and his players. Ask one question at a time."},
+ {id:"player",t:"Convaincre un jeune joueur",fr:"Claude joue un jeune joueur américain qui hésite à signer avec toi.",role:"You are Jaylen, a 19-year-old American college player who is unsure about signing with a European-based agent. Ask about experience, which clubs, commission and why you should trust him."},
+ {id:"small",t:"Discussion libre sur la NBA",fr:"Claude parle de la NBA avec toi comme un ami : matchs, joueurs, actualité.",role:"You are a friendly basketball fan chatting casually about the NBA with the user. Keep it relaxed and ask him questions about his favorite players and recent games."},
+];
+
+const TABS=[["today","Aujourd'hui"],["words","Mots"],["grammar","Grammaire"],["phrases","Phrases"],["dict","Dictée"],["talk","Parler"],["tv","Méthode TV"]];
+const GOALS={cards:15,quiz:5,dict:3,talk:1};
+const KEY="englishcourt_v1";
+const dayNum=d=>Math.floor((d.getTime()-d.getTimezoneOffset()*60000)/86400000);
+const TODAY=dayNum(new Date());
+let S={tab:"today",cards:{},gq:{},dictDone:{},streak:{last:0,n:0},day:{d:TODAY,cards:0,quiz:0,dict:0,talk:0,newc:0},dir:"en",cat:"all",phHide:false,dlv:"all",level:"B1"};
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&typeof s==="object")S={...S,...s}}catch(e){}
+if(S.day.d!==TODAY)S.day={d:TODAY,cards:0,quiz:0,dict:0,talk:0,newc:0};
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function bump(k,n=1){S.day[k]=(S.day[k]||0)+n;
+  if(S.streak.last!==TODAY){S.streak.n=(S.streak.last===TODAY-1)?S.streak.n+1:1;S.streak.last=TODAY}save()}
+const $=s=>document.querySelector(s);
+const view=$("#view");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// Voix anglaise
+let voice=null;const canSpeak=typeof speechSynthesis!=="undefined";
+function pickVoice(){try{const vs=speechSynthesis.getVoices();voice=vs.find(v=>/en-US/i.test(v.lang)&&/Samantha|Google US|Alex|Aaron|Nicky/i.test(v.name))||vs.find(v=>/en-US/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang))||null}catch(e){}}
+try{pickVoice();speechSynthesis.onvoiceschanged=pickVoice}catch(e){}
+function speak(t,rate=.95){if(!canSpeak)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang="en-US";if(voice)u.voice=voice;u.rate=rate;speechSynthesis.speak(u)}catch(e){}}
+function sayBtn(t,label="🔊"){return canSpeak?`<button class="say" data-say="${esc(t)}">${label}</button>`:""}
+document.addEventListener("click",e=>{const b=e.target.closest("[data-say]");if(b){speak(b.dataset.say,b.dataset.slow?.7:.95)}});
+
+function renderTabs(){
+  $("#tabs").innerHTML=TABS.map(([k,l])=>`<button role="tab" data-t="${k}" aria-selected="${S.tab===k}">${l}</button>`).join("");
+  $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>go(b.dataset.t));
+}
+function go(t){S.tab=t;save();try{speechSynthesis.cancel()}catch(e){};renderTabs();R[t]();window.scrollTo({top:0})}
+
+/* ---------- Aujourd'hui ---------- */
+const TIPS=[
+ ["your / you","Donovan is <b>your</b> guard. → « your » devant un nom, « you » seul."],
+ ["Ordre des mots","a <b>FIBA agent</b>, a <b>two-year contract</b> : ce qui décrit vient avant."],
+ ["Prépositions","<b>on</b> Monday, <b>on</b> December 20, <b>at</b> 8 pm, <b>in</b> July."],
+ ["Toujours un sujet","because <b>I</b> want… / so <b>he</b> can't… / <b>It</b> is a good offer."],
+ ["Métier","I <b>work in</b> accounting. I <b>work for</b> a bank. (pas « to the office »)"],
+ ["Être poli","<b>Would you be available</b>…? plutôt que « Are you free? »"],
+ ["Thank you","<b>Thank you</b> ou <b>Thanks</b>, jamais « Thanks you »."],
+];
+const R={};
+R.today=()=>{
+  const d=S.day;const tip=TIPS[TODAY%TIPS.length];const mission=TVMISSIONS[TODAY%TVMISSIONS.length];
+  const due=queue().length;
+  const g=(k,t,sub,tab)=>{const v=Math.min(d[k]||0,GOALS[k]);const done=v>=GOALS[k];
+    return `<button class="goal ${done?"done":""}" data-go="${tab}"><b>${done?"✓ ":""}${t}</b><span class="note">${sub}</span><div class="row"><div class="bar"><i style="width:${v/GOALS[k]*100}%"></i></div><span class="note">${d[k]||0}/${GOALS[k]}</span></div></button>`};
+  const doneAll=Object.keys(GOALS).every(k=>(d[k]||0)>=GOALS[k]);
+  view.innerHTML=`<section>
+    <div class="hero"><div><div class="lbl">Ton niveau · objectif</div><div class="lv">B1 → B2</div><div class="note" style="color:var(--board-fg);opacity:.8">Compréhension B1 · oral et écrit A2+</div></div>
+      <div class="streak"><b>${S.streak.last>=TODAY-1?S.streak.n:0}</b><span class="lbl">jour${S.streak.n>1?"s":""} de suite</span></div></div>
+    <div class="card"><div class="row" style="justify-content:space-between"><h3>Séance du jour · 30 min</h3>${doneAll?'<span class="pill">Terminée</span>':''}</div>
+      <div class="grid2">
+        ${g("cards","Mots",due?`${due} cartes à réviser`:"Rien à réviser","words")}
+        ${g("quiz","Grammaire","5 questions d'une leçon","grammar")}
+        ${g("dict","Dictée","Écoute et écris 3 phrases","dict")}
+        ${g("talk","Parler ou TV","Une conversation ou la mission TV","talk")}
+      </div></div>
+    <div class="card"><span class="eyebrow">Rappel du jour · ${tip[0]}</span><p>${tip[1]}</p></div>
+    <div class="card"><span class="eyebrow">Mission TV du jour</span><p>${mission}</p>
+      <div class="row"><button class="btn ghost" id="mdone">${(d.tvDone)?"✓ Mission faite":"J'ai fait la mission"}</button><button class="btn ghost" data-go="tv">Méthode TV</button></div></div>
+  </section>`;
+  view.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));
+  $("#mdone").onclick=()=>{if(!d.tvDone){d.tvDone=true;bump("talk")}R.today()};
+};
+
+/* ---------- Mots (répétition espacée) ---------- */
+const INT=[1,3,7,14,30,60];
+function queue(){
+  const ids=VOCAB.map((v,i)=>i).filter(i=>S.cat==="all"||VOCAB[i][3]===S.cat);
+  const due=ids.filter(i=>S.cards[i]&&S.cards[i].due<=TODAY);
+  const fresh=ids.filter(i=>!S.cards[i]).slice(0,Math.max(0,10-(S.day.newc||0)));
+  return [...due,...fresh];
+}
+let fq=[],fshow=false;
+R.words=()=>{
+  if(!fq.length)fq=queue();
+  const known=Object.values(S.cards).filter(c=>c.b>=3).length;
+  const seen=Object.keys(S.cards).length;
+  const head=`<div class="chips">${[["all","Tous"],...Object.entries(CATS)].map(([k,l])=>`<button data-cat="${k}" aria-pressed="${S.cat===k}">${l}</button>`).join("")}</div>
+    <div class="row" style="justify-content:space-between"><span class="note">${seen} / ${VOCAB.length} mots vus · ${known} bien sus</span>
+    <button class="say" id="dir" style="background:var(--surface);color:var(--fg);border-color:var(--line)">${S.dir==="en"?"Anglais → Français":"Français → Anglais"}</button></div>`;
+  if(!fq.length){view.innerHTML=`<section>${head}<div class="card flash"><h3>Bravo, plus rien à réviser ici.</h3><p class="note">Les mots reviennent au bon moment : demain, dans 3 jours, dans une semaine… Change de catégorie pour en découvrir d'autres.</p></div></section>`;wireWords();return}
+  const i=fq[0];const [en,fr,ex,cat]=VOCAB[i];const isNew=!S.cards[i];
+  const front=S.dir==="en"?`<div class="w" lang="en">${esc(en)}</div>`:`<div class="w">${esc(fr)}</div>`;
+  view.innerHTML=`<section>${head}
+    <div class="card flash">
+      <div class="row" style="justify-content:center"><span class="pill ${isNew?"warn":""}">${isNew?"Nouveau":"Révision"}</span><span class="note">${CATS[cat]} · ${fq.length} restant${fq.length>1?"s":""}</span></div>
+      ${front}
+      ${S.dir==="en"||fshow?`<div class="row" style="justify-content:center">${sayBtn(en,"🔊 Écouter")}</div>`:""}
+      ${fshow?`<div class="tr">${S.dir==="en"?esc(fr):`<span lang="en">${esc(en)}</span>`}</div><p class="ex" lang="en">${esc(ex)}</p><div class="row" style="justify-content:center">${sayBtn(ex,"🔊 Phrase")}</div>`:""}
+    </div>
+    ${fshow?`<div class="rate"><button class="btn ko" data-r="0">Pas su</button><button class="btn mid" data-r="1">Difficile</button><button class="btn ok" data-r="2">Facile</button></div>`:`<button class="btn" id="show">Voir la réponse</button>`}
+  </section>`;
+  wireWords();
+  if(!fshow&&S.dir==="en")setTimeout(()=>{},0);
+  const sh=$("#show");if(sh)sh.onclick=()=>{fshow=true;R.words()};
+  view.querySelectorAll("[data-r]").forEach(b=>b.onclick=()=>{
+    const r=+b.dataset.r;const c=S.cards[i]||{b:0,due:TODAY};if(!S.cards[i])S.day.newc=(S.day.newc||0)+1;
+    if(r===0){c.b=0;c.due=TODAY;fq.push(i)}else if(r===1){c.due=TODAY+1}else{c.due=TODAY+INT[Math.min(c.b,INT.length-1)];c.b++}
+    S.cards[i]=c;fq.shift();fshow=false;bump("cards");R.words()});
+};
+function wireWords(){
+  view.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{S.cat=b.dataset.cat;save();fq=[];fshow=false;R.words()});
+  $("#dir").onclick=()=>{S.dir=S.dir==="en"?"fr":"en";save();fshow=false;R.words()};
+}
+
+/* ---------- Grammaire ---------- */
+let gOpen=null,gi=0,gAns=false,gScore=0;
+const gstat=(id,k)=>(S.gq[id+"_"+k]||0);
+function gMastered(L){return L.q.filter((_,k)=>gstat(L.id,k)>=2).length}
+R.grammar=()=>{
+  if(gOpen===null){
+    view.innerHTML=`<section><p class="muted">10 leçons choisies d'après tes erreurs au test. Une leçon est maîtrisée quand tu réussis chaque question deux fois de suite.</p>
+      ${GRAMMAR.map((L,n)=>{const m=gMastered(L);return `<button class="lesson" data-l="${n}"><span style="min-width:0"><b>${n+1}. ${esc(L.t)}</b><br><span class="note">${esc(L.why)}</span></span><span class="dots">${L.q.map((_,k)=>`<i class="${gstat(L.id,k)>=2?"on":""}"></i>`).join("")}</span></button>`}).join("")}
+    </section>`;
+    view.querySelectorAll("[data-l]").forEach(b=>b.onclick=()=>{gOpen=+b.dataset.l;gi=-1;gScore=0;R.grammar()});return;
+  }
+  const L=GRAMMAR[gOpen];
+  if(gi<0){
+    view.innerHTML=`<section><button class="btn ghost" id="back" style="align-self:flex-start">← Leçons</button>
+      <div class="card"><span class="eyebrow">Leçon ${gOpen+1}</span><h2>${esc(L.t)}</h2><p class="note">${esc(L.why)}</p>${L.body}
+      <button class="btn" id="start">Faire les ${L.q.length} questions</button></div></section>`;
+    $("#back").onclick=()=>{gOpen=null;R.grammar()};$("#start").onclick=()=>{gi=0;gAns=false;R.grammar()};return;
+  }
+  if(gi>=L.q.length){
+    view.innerHTML=`<section><div class="card"><span class="eyebrow">Résultat · ${esc(L.t)}</span><h2>${gScore} / ${L.q.length}</h2>
+      <p>${gScore===L.q.length?"Parfait. Refais-la demain pour la maîtriser.":"Relis la règle et recommence."}</p>
+      <div class="row"><button class="btn" id="again">Recommencer</button><button class="btn ghost" id="rule">Relire la règle</button><button class="btn ghost" id="back">Toutes les leçons</button></div></div></section>`;
+    $("#again").onclick=()=>{gi=0;gScore=0;gAns=false;R.grammar()};$("#rule").onclick=()=>{gi=-1;R.grammar()};$("#back").onclick=()=>{gOpen=null;R.grammar()};return;
+  }
+  const [q,o,a]=L.q[gi];gAns=false;
+  view.innerHTML=`<section><div class="row" style="justify-content:space-between"><button class="btn ghost" id="back">← Leçons</button><span class="note">${esc(L.t)} · ${gi+1}/${L.q.length}</span></div>
+    <div class="card"><p class="q" lang="en">${esc(q)}</p>
+    <div class="opts">${o.map((x,k)=>`<button data-k="${k}" lang="en">${esc(x)}</button>`).join("")}</div>
+    <div id="after" hidden><div class="expl" id="ex"></div><div class="row" style="margin-top:10px"><button class="btn" id="next">Suivante →</button>${sayBtn(q.replace("___",o[a]),"🔊 Écouter la phrase")}</div></div></div></section>`;
+  $("#back").onclick=()=>{gOpen=null;R.grammar()};
+  view.querySelectorAll(".opts button").forEach(b=>b.onclick=()=>{
+    if(gAns)return;gAns=true;const k=+b.dataset.k;const ok=k===a;const key=L.id+"_"+gi;
+    S.gq[key]=ok?(S.gq[key]||0)+1:0;if(ok)gScore++;else b.classList.add("wrong");
+    view.querySelectorAll(".opts button")[a].classList.add("right");
+    $("#ex").innerHTML=`<b>${ok?"✓ Correct":"✗ Pas tout à fait"}</b> · Bonne réponse : <b lang="en">${esc(o[a])}</b><br><span lang="en">${esc(q.replace("___",o[a]))}</span>`;
+    $("#after").hidden=false;$("#next").onclick=()=>{gi++;R.grammar()};bump("quiz")});
+};
+
+/* ---------- Phrases ---------- */
+R.phrases=()=>{
+  view.innerHTML=`<section>
+    <div class="row" style="justify-content:space-between"><p class="muted" style="flex:1;min-width:200px">Les phrases d'un agent, prêtes à l'emploi. Écoute, répète à voix haute, puis cache l'anglais pour t'entraîner.</p>
+      <button class="btn ghost" id="hide">${S.phHide?"Montrer l'anglais":"Cacher l'anglais"}</button></div>
+    ${PHRASES.map(G=>`<div class="card"><h3>${esc(G.g)}</h3>${G.l.map(([en,fr])=>`<div class="ph"><div style="min-width:0"><div class="en ${S.phHide?"hid":""}" lang="en">${esc(en)}</div><div class="fr">${esc(fr)}</div></div><div class="row" style="flex:none">${sayBtn(en)}${canSpeak?`<button class="say" data-say="${esc(en)}" data-slow="1">🐢</button>`:""}</div></div>`).join("")}</div>`).join("")}
+  </section>`;
+  $("#hide").onclick=()=>{S.phHide=!S.phHide;save();R.phrases()};
+  view.querySelectorAll(".hid").forEach(e=>e.onclick=()=>e.classList.remove("hid"));
+};
+
+/* ---------- Dictée ---------- */
+let di=null;
+function norm(s){return s.toLowerCase().replace(/[’']/g,"'").replace(/[^a-z0-9' ]/g," ").split(/\s+/).filter(Boolean)}
+const NUM={"8":"eight","30":"thirty","10":"ten","2":"two","3":"three","5":"five"};
+R.dict=()=>{
+  const list=DICT.map((d,i)=>i).filter(i=>S.dlv==="all"||DICT[i][0]===S.dlv);
+  if(di===null||!list.includes(di))di=list.find(i=>!S.dictDone[i])??list[0];
+  const [lv,t]=DICT[di];const done=Object.keys(S.dictDone).length;
+  view.innerHTML=`<section>
+    <div class="chips">${["all","A2","B1","B2","C1"].map(k=>`<button data-lv="${k}" aria-pressed="${S.dlv===k}">${k==="all"?"Tous":k}</button>`).join("")}</div>
+    <div class="card"><div class="row" style="justify-content:space-between"><span class="eyebrow">Dictée · ${lv}</span><span class="note">${done}/${DICT.length} réussies</span></div>
+      ${canSpeak?`<div class="row"><button class="btn" data-say="${esc(t)}">▶ Écouter</button><button class="btn ghost" data-say="${esc(t)}" data-slow="1">▶ Lentement</button></div>`:`<p class="note">L'audio n'est pas disponible ici.</p>`}
+      <p class="note">Écoute autant de fois que nécessaire, puis écris ce que tu entends. Les majuscules et la ponctuation ne comptent pas.</p>
+      <input type="text" id="din" lang="en" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type what you hear…">
+      <div class="row"><button class="btn" id="check">Vérifier</button><button class="btn ghost" id="skip">Phrase suivante</button></div>
+      <div id="dres" hidden></div></div></section>`;
+  view.querySelectorAll("[data-lv]").forEach(b=>b.onclick=()=>{S.dlv=b.dataset.lv;save();di=null;R.dict()});
+  const nextD=()=>{const p=list.indexOf(di);di=list[(p+1)%list.length];R.dict()};
+  $("#skip").onclick=nextD;
+  $("#check").onclick=()=>{
+    const want=norm(t),got=norm($("#din").value).map(w=>NUM[w]||w);
+    let j=0;const out=[];let good=0;
+    want.forEach(w=>{const k=got.indexOf(w,j);if(k>=0){for(let x=j;x<k;x++)out.push(`<span class="kow">${esc(got[x])}</span>`);out.push(`<span class="okw">${esc(w)}</span>`);good++;j=k+1}else out.push(`<span class="miss">${esc(w)}</span>`)});
+    for(let x=j;x<got.length;x++)out.push(`<span class="kow">${esc(got[x])}</span>`);
+    const pct=Math.round(good/want.length*100);
+    if(pct>=90&&!S.dictDone[di])S.dictDone[di]=1;
+    bump("dict");
+    const r=$("#dres");r.hidden=false;r.innerHTML=`<div class="expl"><b>${pct===100?"✓ Parfait":pct>=90?"✓ Presque parfait":pct+" % des mots"}</b>
+      <p class="diff" lang="en" style="margin-top:6px">${out.join(" ")}</p>
+      <p class="note" style="margin-top:6px">Vert : juste · orange : mot manquant · rouge barré : mot en trop ou mal écrit.</p>
+      <p lang="en" style="margin-top:6px"><b>${esc(t)}</b></p></div><button class="btn" id="nxt" style="margin-top:10px">Phrase suivante →</button>`;
+    $("#nxt").onclick=nextD;
+  };
+  $("#din").addEventListener("keydown",e=>{if(e.key==="Enter")$("#check").click()});
+};
+
+/* ---------- Parler ---------- */
+let sampleFn=null,sampleReady=false,scen=null,chat=[],busy=false;
+(async()=>{try{if(window.claude&&window.claude.use){sampleFn=await window.claude.use("sample")}}catch(e){}sampleReady=true;if(S.tab==="talk")R.talk()})();
+function voicePrompt(s){return `Let's practice English. ${s.role}
+I am a French speaker at B1 level (comprehension) and A2+ when speaking. My goal is to become a FIBA basketball agent.
+Rules:
+- Speak only in English, with simple and clear sentences, at a natural speed.
+- Keep each of your answers short (2 to 3 sentences) and always end with a question for me.
+- After each of my answers, first give me a short correction in French of my main mistake (if there is one), with the correct English sentence. Then continue the role-play in English.
+- Stop after about 10 exchanges and give me a summary in French: my 3 main mistakes and 5 useful words.
+Start now.`}
+R.talk=()=>{
+  if(!scen){
+    const live=!!sampleFn;
+    view.innerHTML=`<section>
+      <div class="card"><h3>Parler pour progresser à l'oral</h3>
+      ${live?`<p>Choisis une situation. Claude joue le rôle, te répond en anglais et corrige tes erreurs en français. Pour parler au lieu d'écrire, touche le <b>micro</b> du clavier.</p>`
+      :`<p>Le mieux pour l'oral : le <b>mode vocal</b> de l'application Claude. Tu parles, Claude te répond à voix haute. Choisis une situation, copie la consigne, colle-la dans une nouvelle conversation Claude, puis touche l'icône du mode vocal.</p>`}
+      </div>
+      ${SCENARIOS.map((s,n)=>`<div class="card"><h3>${esc(s.t)}</h3><p class="note">${esc(s.fr)}</p>
+        <div class="row">${live?`<button class="btn" data-s="${n}">Commencer</button>`:""}<button class="btn ${live?"ghost":""}" data-c="${n}">Copier la consigne pour le mode vocal</button></div>
+        <pre class="prompt" id="p${n}" hidden>${esc(voicePrompt(s))}</pre><p class="note" id="c${n}" hidden>Copié. Colle-le dans une nouvelle conversation Claude, puis passe en mode vocal.</p></div>`).join("")}
+      <p class="note">Une conversation compte pour l'objectif « Parler ou TV » du jour.</p>
+    </section>`;
+    view.querySelectorAll("[data-s]").forEach(b=>b.onclick=()=>{scen=SCENARIOS[+b.dataset.s];chat=[];R.talk();sendAI(null)});
+    view.querySelectorAll("[data-c]").forEach(b=>b.onclick=async()=>{const n=b.dataset.c;const t=voicePrompt(SCENARIOS[n]);
+      try{await navigator.clipboard.writeText(t);$("#c"+n).hidden=false}catch(e){const p=$("#p"+n);p.hidden=false;$("#c"+n).hidden=false;$("#c"+n).textContent="Sélectionne le texte ci-dessus et copie-le.";}
+      if(!S.day.talkCopied){S.day.talkCopied=true;bump("talk")}});
+    return;
+  }
+  view.innerHTML=`<section><div class="row" style="justify-content:space-between"><button class="btn ghost" id="back">← Situations</button><span class="note">${esc(scen.t)}</span></div>
+    <div class="chat" id="chat">${chat.map(m=>m.role==="me"?`<div class="msg me" lang="en">${esc(m.text)}</div>`:
+      `<div class="msg ai"><span lang="en">${esc(m.text)}</span>${m.fb?`<div class="fb">${esc(m.fb)}${m.better?`<br><b lang="en">${esc(m.better)}</b>`:""}</div>`:""}<div class="row">${sayBtn(m.text,"🔊 Écouter")}</div></div>`).join("")}
+      ${busy?`<div class="msg ai"><span class="note">Claude écrit…</span></div>`:""}</div>
+    <div class="card"><textarea id="tin" lang="en" placeholder="Answer in English… (micro du clavier pour parler)"></textarea>
+      <div class="row"><button class="btn" id="send" ${busy?"disabled":""}>Envoyer</button><button class="btn ghost" id="end">Terminer et voir mon bilan</button></div><p class="note" id="terr" hidden></p></div></section>`;
+  $("#back").onclick=()=>{scen=null;R.talk()};
+  $("#send").onclick=()=>{const v=$("#tin").value.trim();if(!v||busy)return;chat.push({role:"me",text:v});sendAI(null)};
+  $("#end").onclick=()=>{if(busy)return;sendAI("end")};
+  const c=$("#chat");if(c&&chat.length)c.lastElementChild&&c.lastElementChild.scrollIntoView({block:"nearest"});
+};
+async function sendAI(mode){
+  busy=true;R.talk();
+  const transcript=chat.map(m=>(m.role==="me"?"LEARNER: ":"YOU: ")+m.text).join("\n");
+  const prompt=`Role-play for English practice. ${scen.role}
+The learner is a French speaker (B1 comprehension, A2+ speaking) who wants to become a FIBA basketball agent.
+Conversation so far:
+${transcript||"(no messages yet — start the conversation)"}
+
+${mode==="end"?`The learner wants to stop. Reply with only this JSON: {"reply":"a short goodbye in English","feedback":"bilan en français : ses 3 erreurs principales avec la correction, puis 5 mots utiles en anglais avec leur traduction","better":""}`
+:`Reply with only this JSON: {"reply":"your next line in English, 1 to 3 simple sentences, ending with a question","feedback":"en français, une phrase : corrige l'erreur principale du dernier message de l'apprenant, ou dis 'Très bien !' s'il n'y a pas d'erreur. Vide si l'apprenant n'a encore rien dit.","better":"the learner's last message rewritten in natural English, or empty"}`}`;
+  try{
+    const a=await sampleFn.json(prompt,{modelTier:"quick",cache:false});
+    chat.push({role:"ai",text:String(a.reply||""),fb:String(a.feedback||""),better:String(a.better||"")});
+    if(chat.filter(m=>m.role==="me").length===1&&!S.day.talkChat){S.day.talkChat=true;bump("talk")}
+  }catch(e){
+    busy=false;R.talk();const t=$("#terr");if(t){t.hidden=false;t.textContent=e&&e.code==="not_granted"?"Claude n'a pas été autorisé. Utilise plutôt le mode vocal (bouton « Copier la consigne »).":e&&e.code==="rate_limited"?"Trop de messages pour le moment. Réessaie dans quelques minutes.":"Le message n'est pas passé. Réessaie."}
+    return}
+  busy=false;R.talk();
+}
+
+/* ---------- Méthode TV ---------- */
+R.tv=()=>{
+  view.innerHTML=`<section>
+    <div class="card"><h3>Apprendre avec tes matchs NBA</h3>
+      <p>Regarder passivement fait peu progresser. Ce qui marche : regarder <b>activement</b>, un peu chaque jour, et <b>répéter à voix haute</b>.</p>
+      <ul class="clean">
+        <li><b>Avant le match (2 min)</b> : révise 5 mots de l'onglet Mots, catégorie « Commentaires TV ».</li>
+        <li><b>Pendant</b> : à chaque temps mort, répète à voix haute la dernière phrase du commentateur.</li>
+        <li><b>Après (5 min)</b> : résume le match à voix haute en anglais, ou fais la mission du jour.</li>
+        <li><b>Une fois par semaine</b> : une conférence de presse d'après-match sur YouTube. Les joueurs parlent lentement et avec des phrases simples. C'est parfait pour ton niveau.</li>
+      </ul></div>
+    <div class="card"><h3>Quoi regarder, du plus facile au plus difficile</h3>
+      <ul class="clean">
+        <li><b>Conférences de presse</b> d'après-match : phrases simples, débit lent.</li>
+        <li><b>Résumés de match</b> (highlights) de 10 minutes avec commentaire.</li>
+        <li><b>Matchs complets</b> sur ESPN, ABC, NBA TV, TNT.</li>
+        <li><b>Émissions d'analyse</b> : NBA Today, Inside the NBA. Plus rapide, beaucoup d'opinions et d'humour.</li>
+        <li><b>Débats</b> : First Take. Très rapide, niveau B2 et plus.</li>
+      </ul>
+      <p class="note">Si ton IPTV ou YouTube propose des sous-titres anglais, active-les : sous-titres en anglais, jamais en français.</p></div>
+    <div class="card"><span class="eyebrow">Mission du jour</span><p>${TVMISSIONS[TODAY%TVMISSIONS.length]}</p>
+      <button class="btn ghost" id="tvdone" style="align-self:flex-start">${S.day.tvDone?"✓ Mission faite":"J'ai fait la mission"}</button></div>
+    <div class="card"><h3>Expressions des commentateurs</h3>
+      ${TVTERMS.map(([en,fr])=>`<div class="term"><div style="min-width:0"><b lang="en">${esc(en)}</b><br><span class="note">${esc(fr)}</span></div>${sayBtn(en)}</div>`).join("")}</div>
+  </section>`;
+  $("#tvdone").onclick=()=>{if(!S.day.tvDone){S.day.tvDone=true;bump("talk")}R.tv()};
+};
+
+renderTabs();(R[S.tab]||R.today)();
+
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}</script></body></html>
