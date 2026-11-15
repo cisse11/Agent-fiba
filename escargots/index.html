@@ -91,6 +91,17 @@ svg text{fill:var(--muted);font-family:var(--mono);font-size:10px}
 .jform input,.jform select,textarea{width:100%;font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px}
 textarea{min-height:200px;font-family:var(--mono);font-size:13px}
 .del{background:none;border:none;color:var(--ko);cursor:pointer;font-size:16px}
+/* cycle */
+.gantt{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.gantt table{border-collapse:separate;border-spacing:2px;font-size:11px;min-width:max-content}
+.gantt th,.gantt td{padding:0;border:none;text-align:center}
+.gantt th{font-family:var(--mono);font-size:10px;color:var(--muted);font-weight:500;padding:4px 0;min-width:26px}
+.gantt th.lot,.gantt td.lot{position:sticky;left:0;background:var(--surface);text-align:left;padding:0 8px;font-family:var(--mono);font-size:11px;white-space:nowrap;z-index:1}
+.gantt td.c{height:22px;min-width:26px;border-radius:4px}
+.c.p{background:var(--amber-soft)} .c.n{background:var(--accent-soft)} .c.g{background:var(--accent);opacity:.55} .c.v{background:var(--amber);color:#fff;font-weight:700}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:13px}
+.legend span{display:inline-flex;gap:6px;align-items:center}
+.legend i{width:14px;height:14px;border-radius:3px;display:inline-block}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -111,10 +122,11 @@ textarea{min-height:200px;font-family:var(--mono);font-size:13px}
 </div>
 
 <script>
-const TABS=[["verite","5 millions par mois ?"],["guide","Guide A à Z"],["calc","Calculateur"],["distance","Gérer depuis la Suisse"],["carnet","Carnet de la ferme"],["pieges","Pièges à éviter"]];
+const TABS=[["verite","5 millions par mois ?"],["guide","Guide A à Z"],["calc","Calculateur"],["cycle","Cycle"],["distance","Gérer depuis la Suisse"],["carnet","Carnet de la ferme"],["pieges","Pièges à éviter"]];
 const STEPS=[
  {t:"Se former avant d'investir",w:"Mois 0 · 2 à 4 semaines",b:`<p>La plupart des élevages qui échouent ont démarré après une formation trop courte. En Côte d'Ivoire, environ 18 000 personnes ont été formées, mais souvent en stage court, et une bonne partie ne s'est jamais vraiment installée.</p>
  <ul class="clean"><li>Fais une formation <b>pratique, sur une vraie ferme en activité</b>, de préférence pendant ton prochain séjour en Côte d'Ivoire. La zone d'Azaguié, à 40 km d'Abidjan, compte une trentaine de fermes.</li><li>Visite au moins <b>3 fermes</b> et demande à chaque éleveur : combien il vend par mois, à qui, à quel prix, combien d'escargots il perd.</li><li>Lis le manuel gratuit Agrodok n° 47 « L'élevage d'escargots » (lien dans l'onglet Pièges).</li></ul>`,
+ b2:"visites",
  k:["Lire le manuel Agrodok 47","Visiter 3 fermes en activité et noter leurs vrais chiffres","Suivre une formation pratique sur une ferme","Trouver un acheteur prêt à acheter ta future production"]},
  {t:"Choisir l'espèce",w:"Mois 0",b:`<div class="tbl"><table><thead><tr><th></th><th>Achatina achatina</th><th>Archachatina marginata</th></tr></thead><tbody>
  <tr><td>Réputation</td><td>La plus demandée en Afrique de l'Ouest</td><td>Gros escargot noir, très apprécié</td></tr>
@@ -147,6 +159,17 @@ const STEPS=[
  k:["Atteindre une mortalité stable et faible","Vendre toute la production pendant 6 mois","Doubler le nombre de reproducteurs avec tes propres jeunes","Tester la vente d'escargots décortiqués ou transformés"]},
 ];
 
+const FERMES=[
+ ["Élevage d'escargot et d'hanneton en Côte d'Ivoire","Bimbresso, ouest d'Abidjan (code 8R9R+9G4)","+225 07 97 66 27 17","Se présente comme centre de formation"],
+ ["Escargots de Begnini","Abidjan (06 BP 1430)","+225 07 58 15 15 15","Ouvert en semaine de 8 h à 17 h selon sa fiche"],
+ ["Escargots akié","Ebimpé, nord d'Abidjan, vers Anyama","+225 07 09 26 32 00",""],
+ ["France Expertise Côte d'Ivoire","Azaguié (code JWH9+H3F), à 40 km au nord d'Abidjan","+225 27 21 74 43 46","Ouvert en semaine de 8 h à 17 h selon sa fiche"],
+];
+const VISITES=`<div class="card" style="background:var(--accent-soft);border-color:var(--accent)"><h3>4 fermes à visiter autour d'Abidjan</h3>
+ <div class="tbl"><table><thead><tr><th>Ferme</th><th>Où</th><th>Téléphone</th></tr></thead><tbody>
+ ${FERMES.map(f=>`<tr><td><b>${f[0]}</b>${f[3]?`<br><span class="note">${f[3]}</span>`:""}</td><td>${f[1]}</td><td style="white-space:nowrap;font-family:var(--mono)">${f[2]}</td></tr>`).join("")}</tbody></table></div>
+ <p class="note">Coordonnées trouvées sur Google Maps en novembre 2026, non vérifiées : appelle ou écris sur WhatsApp avant de te déplacer, et demande si une visite est possible et à quel prix. Les deux codes entre parenthèses se tapent dans Google Maps pour trouver l'endroit exact.</p></div>`;
+
 const KEY="fermeescargots_v1";
 let S={tab:"verite",checks:{},journal:[],calc:null};
 try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&typeof s==="object")S={...S,...s}}catch(e){}
@@ -178,7 +201,7 @@ R.verite=()=>{view.innerHTML=`<section>
  </ul></div>
  <div class="card"><h3>Ce qu'il faudrait pour 5 millions de bénéfice par mois</h3>
  <p>Avec des hypothèses prudentes (escargot vendu 250 g, 2 000 FCFA le kilo à la ferme, 40 % des œufs arrivent à la vente), il faudrait environ :</p>
- <ul class="clean"><li>environ <b>3 900 reproducteurs</b></li><li>vendre environ <b>16 500 escargots par mois</b>, soit environ <b>4 tonnes</b></li><li>environ <b>0,75 hectare</b> d'enclos et une <b>équipe de 15 à 20 soigneurs</b></li><li>environ <b>27 millions de FCFA</b> d'investissement (environ 38 000 CHF) si tout était construit d'un coup</li></ul>
+ <ul class="clean"><li>environ <b>3 900 reproducteurs</b></li><li>vendre environ <b>16 500 escargots par mois</b>, soit environ <b>4 tonnes</b></li><li>environ <b>1 hectare</b> d'enclos et une <b>équipe de 15 à 20 soigneurs</b></li><li>environ <b>38 millions de FCFA</b> d'investissement (environ 54 000 CHF) si tout était construit d'un coup</li></ul>
  <p>Avec une petite ferme de 300 reproducteurs, les mêmes hypothèses donnent environ <b>280 000 FCFA de bénéfice par mois</b> (environ 400 CHF), après un an et demi.</p>
  <p>Refais le calcul avec tes propres chiffres dans l'onglet <b>Calculateur</b>.</p></div>
  <div class="card"><h3>Pourquoi les vidéos donnent des chiffres plus gros</h3>
@@ -195,7 +218,7 @@ R.verite=()=>{view.innerHTML=`<section>
 R.guide=()=>{view.innerHTML=`<section><p class="muted">10 étapes, dans l'ordre. Coche chaque tâche quand elle est faite.</p>${STEPS.map((s,i)=>{
   const d=s.k.filter((_,j)=>S.checks[i+"_"+j]).length;const all=d===s.k.length;
   return `<details class="step ${all?"done":""}" ${S.open===i?"open":""} data-i="${i}"><summary><span class="num-badge">${all?"✓":i+1}</span><span style="min-width:0"><h3>${esc(s.t)}</h3><span class="when">${esc(s.w)}</span></span><span class="pill ${all?"":"amber"}">${d}/${s.k.length}</span></summary>
-  <div class="sb">${s.b}<div>${s.k.map((t,j)=>{const id=i+"_"+j;return `<div class="task ${S.checks[id]?"on":""}"><input type="checkbox" id="c${id}" data-k="${id}" ${S.checks[id]?"checked":""}><label for="c${id}">${esc(t)}</label></div>`}).join("")}</div></div></details>`}).join("")}</section>`;
+  <div class="sb">${s.b}${s.b2==="visites"?VISITES:""}<div>${s.k.map((t,j)=>{const id=i+"_"+j;return `<div class="task ${S.checks[id]?"on":""}"><input type="checkbox" id="c${id}" data-k="${id}" ${S.checks[id]?"checked":""}><label for="c${id}">${esc(t)}</label></div>`}).join("")}</div></div></details>`}).join("")}</section>`;
   view.querySelectorAll("details.step").forEach(d=>d.addEventListener("toggle",()=>{if(d.open){S.open=+d.dataset.i;save()}}));
   view.querySelectorAll("[data-k]").forEach(c=>c.onchange=()=>{S.checks[c.dataset.k]=c.checked;save();progress();
     const open=S.open;R.guide();});
@@ -210,7 +233,8 @@ function model(c,breeders){
   const perMonth=perYear/12;const kg=perMonth*c.w;const rev=kg*c.price;const feed=kg*c.feed;
   const stock=perYear*c.months/12;const workers=Math.max(1,Math.ceil(stock/c.perWorker));
   const fixed=workers*c.salary+c.other;const profit=rev-feed-fixed;
-  const area=breeders/10+stock/35;const setup=breeders*c.breederPrice+area*c.buildPerM2+500000;
+  const births=breeders*c.eggs*(c.hatch/100)/12;
+  const area=breeders/10+births*2/100+births*((1+c.surv/100)/2)*Math.max(3,c.months-3)/35;const setup=breeders*c.breederPrice+area*c.buildPerM2+500000;
   return {perYear,perMonth,kg,rev,feed,fixed,profit,workers,stock,area,setup};
 }
 function needed(c){let lo=1,hi=200000;for(let k=0;k<60;k++){const m=(lo+hi)/2;if(model(c,m).profit>=c.target)hi=m;else lo=m}return Math.ceil(hi)}
@@ -274,6 +298,80 @@ function out(){const c=C();const m=model(c,c.breeders);const need=needed(c);cons
     <p class="note">Le mieux : y arriver progressivement, en multipliant tes reproducteurs avec tes propres jeunes au lieu de tout acheter d'un coup.</p>
    </div>`;
 }
+
+/* --------- Cycle --------- */
+const MOIS=["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+function cyc(){return {start:(S.cyc&&S.cyc.start)||defStart(),semi:(S.cyc&&S.cyc.semi!=null)?S.cyc.semi:0,keep:(S.cyc&&S.cyc.keep!=null)?S.cyc.keep:10}}
+function defStart(){const d=new Date();d.setMonth(d.getMonth()+1);return d.toISOString().slice(0,7)}
+function mlabel(start,i){const [y,m]=start.split("-").map(Number);const d=new Date(y,m-1+i,1);return MOIS[d.getMonth()]+" "+String(d.getFullYear()).slice(2)}
+R.cycle=()=>{const c=C(),y=cyc();
+  const births=c.breeders*c.eggs*(c.hatch/100)/12;          // bébés nés par mois
+  const sold=births*(c.surv/100);                            // escargots vendus par lot
+  const keepN=sold*y.keep/100;                               // gardés comme reproducteurs
+  const L0=1, nurse=2, grow=Math.max(3,c.months-1-nurse);    // ponte (1 mois) + nurserie + croissance = mois avant la vente
+  const saleAge=1+nurse+grow;                                // mois entre la ponte et la vente
+  const lots=12, cols=L0+lots-1+saleAge+1;
+  const cell=(k,i)=>{const p=L0+k;const a=i-p;if(a<0)return"";if(a===0)return"p";if(a<=nurse)return"n";if(a<saleAge)return"g";if(a===saleAge)return"v";return""};
+  // ventes par mois sur 36 mois
+  const firstSale=L0+saleAge;const months=36;const sales=[];
+  for(let i=0;i<=months;i++){let v=i>=firstSale?sold-keepN:0;if(y.semi&&i===4)v+=y.semi*0.9;sales.push(v)}
+  const maxS=Math.max(...sales,1);
+  // enclos au régime normal
+  const nurM2=births*nurse/100, grM2=births*((1+c.surv/100)/2)*grow/35, brM2=c.breeders/10;
+  view.innerHTML=`<section>
+   <div class="card"><h3>Le principe : un lot chaque mois, une vente chaque mois</h3>
+    <p>Les reproducteurs pondent en continu. Chaque mois, les bébés nés forment un <b>lot</b> qui avance ensemble : ponte, nurserie, croissance, vente. Comme un nouveau lot démarre chaque mois, un lot est prêt à la vente <b>chaque mois</b> dès que le premier a fini de grandir.</p>
+    <p class="note">Le planning reprend tes chiffres du Calculateur (${fmt(c.breeders)} reproducteurs, ${c.months} mois de l'œuf à la vente). Change-les là-bas pour mettre à jour le cycle.</p>
+    <div class="row">
+     <label class="field" style="grid-template-columns:auto 150px"><span>Mois d'arrivée des reproducteurs</span><input type="month" id="cy_start" value="${y.start}" style="text-align:left"></label>
+    </div>
+    <div class="row">
+     <label class="field" style="grid-template-columns:auto 110px"><span>Escargots à moitié grandis achetés au départ</span><input type="number" id="cy_semi" inputmode="numeric" value="${y.semi}"></label>
+     <label class="field" style="grid-template-columns:auto 110px"><span>Gardés comme reproducteurs <span class="note">(%)</span></span><input type="number" id="cy_keep" inputmode="numeric" value="${y.keep}"></label>
+    </div>
+   </div>
+   <div class="kpis">
+    <div class="kpi"><b>${fmt(births)}</b><span>bébés par lot (nés chaque mois)</span></div>
+    <div class="kpi"><b>${fmt(sold-keepN)}</b><span>escargots vendus par mois ensuite (${fmt((sold-keepN)*c.w)} kg)</span></div>
+    <div class="kpi"><b>${mlabel(y.start,firstSale)}</b><span>première vente de tes propres escargots (mois ${firstSale})</span></div>
+    <div class="kpi"><b>${fmt(keepN*12)}</b><span>nouveaux reproducteurs gardés par an</span></div>
+   </div>
+   <div class="card"><h3>Planning des 12 premiers lots</h3>
+    <div class="legend"><span><i style="background:var(--amber-soft)"></i>Ponte et incubation</span><span><i style="background:var(--accent-soft)"></i>Nurserie</span><span><i style="background:var(--accent);opacity:.55"></i>Croissance</span><span><i style="background:var(--amber)"></i>Vente</span></div>
+    <div class="gantt"><table><thead><tr><th class="lot">Lot</th>${Array.from({length:cols},(_,i)=>`<th title="Mois ${i}">${mlabel(y.start,i).replace(" ","<br>")}</th>`).join("")}</tr></thead><tbody>
+     ${Array.from({length:lots},(_,k)=>`<tr><td class="lot">Lot ${k+1}</td>${Array.from({length:cols},(_,i)=>{const t=cell(k,i);return `<td class="c ${t}">${t==="v"?"€":""}</td>`}).join("")}</tr>`).join("")}
+    </tbody></table></div>
+    <p class="note">Fais défiler le tableau de gauche à droite. Chaque ligne est un lot. La colonne avec le symbole € est le mois où il se vend.</p>
+   </div>
+   <div class="card"><h3>Escargots vendus par mois sur 3 ans</h3>
+    <svg viewBox="0 0 330 140" role="img" aria-label="Escargots vendus par mois" style="width:100%;height:auto">
+     ${sales.map((v,i)=>{const h=v/maxS*100;return `<rect x="${24+i*8.3}" y="${112-h}" width="6" height="${h}" rx="1" fill="${i===4&&y.semi?"var(--amber)":"var(--accent)"}"><title>${mlabel(y.start,i)} : ${fmt(v)}</title></rect>`}).join("")}
+     <line x1="22" x2="330" y1="112" y2="112" stroke="var(--line)"/>
+     <text x="0" y="16">${fmt(maxS)}</text><text x="10" y="112">0</text>
+     ${[0,12,24,36].map(i=>`<text x="${20+i*8.3}" y="128">${mlabel(y.start,i)}</text>`).join("")}
+    </svg>
+    <p class="note">${y.semi?"En orange : la vente des escargots achetés à moitié grandis, engraissés environ 4 mois. Elle te fait rentrer de l'argent pendant l'attente.":"Ajoute des escargots à moitié grandis au départ pour avoir une première vente pendant l'attente."}</p>
+   </div>
+   <div class="card"><h3>Enclos nécessaires une fois le cycle lancé</h3>
+    <div class="tbl"><table><thead><tr><th>Zone</th><th class="num">Lots en même temps</th><th class="num">Surface</th></tr></thead><tbody>
+     <tr><td>Reproduction (~10 par m²)</td><td class="num">—</td><td class="num">${fmt(brM2)} m²</td></tr>
+     <tr><td>Nurserie (~100 par m²)</td><td class="num">${nurse}</td><td class="num">${fmt(nurM2)} m²</td></tr>
+     <tr><td>Croissance (~35 par m² en moyenne)</td><td class="num">${grow}</td><td class="num">${fmt(grM2)} m²</td></tr>
+     <tr><td><b>Total</b></td><td class="num">${nurse+grow}</td><td class="num"><b>${fmt(brM2+nurM2+grM2)} m²</b></td></tr></tbody></table></div>
+    <p class="note">Prévois un enclos par lot : c'est plus simple pour garder des escargots de même taille et savoir lequel vendre. ${nurse+grow} enclos de croissance et de nurserie tournent en permanence.</p>
+   </div>
+   <div class="card"><h3>Les règles pour que le cycle tienne</h3>
+    <ul class="clean">
+     <li><b>Un lot = un enclos</b>, avec une étiquette : numéro du lot et mois de naissance.</li>
+     <li><b>Arrose en saison sèche</b> pour que les reproducteurs continuent de pondre.</li>
+     <li><b>Remplace les vieux reproducteurs</b> tous les 2 à 3 ans par les plus beaux escargots gardés à la vente.</li>
+     <li><b>Note chaque lot dans le Carnet</b> : éclosions, morts, vente. Tu verras vite quel lot marche mal.</li>
+     <li><b>Prévois la vente à l'avance</b> : préviens ton acheteur un mois avant chaque lot.</li>
+    </ul></div>
+  </section>`;
+  const upd=()=>{S.cyc={start:$("#cy_start").value||defStart(),semi:parseFloat($("#cy_semi").value)||0,keep:Math.min(50,Math.max(0,parseFloat($("#cy_keep").value)||0))};save();clearTimeout(window.__cyT);window.__cyT=setTimeout(()=>{if(S.tab==="cycle")R.cycle()},0)};
+  ["cy_start","cy_semi","cy_keep"].forEach(id=>$("#"+id).addEventListener("change",upd));
+};
 
 /* --------- À distance --------- */
 const REPORT=`RAPPORT DU JOUR – Ferme escargots
