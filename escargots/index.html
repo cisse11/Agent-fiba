@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Escargots"><meta name="theme-color" content="#16261b"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-180.png"><link rel="icon" href="icon-192.png"><title>Ferme Escargots CI</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout : carnet de ferme — bandeau objectif, onglets, fiches d'étapes à cocher, calculateur à deux colonnes */
+:root{
+  --bg:#eef2ec; --surface:#ffffff; --fg:#17231a; --muted:#5b6b5e; --line:#d5ded3;
+  --accent:#2f6b3a; --accent-soft:#dcebdc; --amber:#b86e12; --amber-soft:#f6e6cf;
+  --ok:#2f7d4f; --ok-soft:#e1f1e7; --ko:#b8322a; --ko-soft:#f8e1de; --board:#16261b; --board-fg:#eef4ec;
+  --display:"Bricolage Grotesque","Arial Narrow",Arial,sans-serif;
+  --body:"Atkinson Hyperlegible",system-ui,-apple-system,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1611; --surface:#18221b; --fg:#e8efe7; --muted:#9aab9c; --line:#2b3a2e;
+  --accent:#7cc38a; --accent-soft:#1d3322; --amber:#eaa54a; --amber-soft:#3a2a12;
+  --ok:#5cc184; --ok-soft:#183324; --ko:#f07a70; --ko-soft:#3a1a17; --board:#070c08; --board-fg:#eef4ec; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1611; --surface:#18221b; --fg:#e8efe7; --muted:#9aab9c; --line:#2b3a2e;
+  --accent:#7cc38a; --accent-soft:#1d3322; --amber:#eaa54a; --amber-soft:#3a2a12;
+  --ok:#5cc184; --ok-soft:#183324; --ko:#f07a70; --ko-soft:#3a1a17; --board:#070c08; --board-fg:#eef4ec; color-scheme:dark}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 48px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+[hidden]{display:none!important}
+.wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{font-family:var(--display);margin:0;line-height:1.08;text-wrap:balance}
+h1{font-size:clamp(30px,7vw,44px);font-weight:800}
+h2{font-size:23px;font-weight:800}
+h3{font-size:18px;font-weight:600}
+p{margin:0}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.muted{color:var(--muted)} .note{font-size:13px;color:var(--muted)}
+.tabs{display:flex;gap:6px;overflow-x:auto;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:5;padding-block:8px}
+.tabs button{font-family:var(--display);font-weight:600;font-size:15px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:99px;padding:8px 14px;cursor:pointer;white-space:nowrap;flex:none}
+.tabs button[aria-selected="true"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+section{display:flex;flex-direction:column;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card.warn{border-color:var(--amber);background:var(--amber-soft)}
+ul.clean{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:5px}
+.btn{font-family:var(--display);font-weight:600;font-size:15px;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 16px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:500}
+td.num,th.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill{display:inline-block;font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:99px;background:var(--accent-soft);color:var(--accent)}
+.pill.amber{background:var(--amber-soft);color:var(--amber)}
+.pill.ko{background:var(--ko-soft);color:var(--ko)}
+/* bandeau */
+.board{background:var(--board);color:var(--board-fg);border-radius:14px;padding:18px;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.board .big{font-family:var(--display);font-weight:800;font-size:34px;line-height:1;color:#f0b25c}
+.board .lbl{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;opacity:.75}
+@media (max-width:540px){.board{grid-template-columns:1fr}}
+.bar{flex:1;height:8px;background:var(--line);border-radius:99px;overflow:hidden;min-width:60px}
+.bar i{display:block;height:100%;background:var(--accent)}
+/* étapes */
+details.step{background:var(--surface);border:1px solid var(--line);border-radius:14px}
+details.step summary{cursor:pointer;list-style:none;padding:14px 16px;display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center}
+details.step summary::-webkit-details-marker{display:none}
+.num-badge{font-family:var(--display);font-weight:800;font-size:20px;width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.done .num-badge{background:var(--ok);color:#fff}
+.step .sb{padding:0 16px 16px;display:flex;flex-direction:column;gap:10px}
+.step .when{font-family:var(--mono);font-size:12px;color:var(--amber)}
+.task{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-top:1px dashed var(--line)}
+.task input{width:18px;height:18px;margin-top:2px;accent-color:var(--accent);flex:none}
+.task.on label{color:var(--muted);text-decoration:line-through}
+/* calculateur */
+.calc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+@media (max-width:720px){.calc{grid-template-columns:1fr}}
+.field{display:grid;grid-template-columns:1fr 120px;gap:8px;align-items:center;font-size:14px}
+.field input,.field select{width:100%;font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 8px;text-align:right;font-family:var(--mono)}
+.field select{text-align:left;font-family:var(--body)}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.kpi{border:1px solid var(--line);border-radius:10px;padding:10px}
+.kpi b{display:block;font-family:var(--display);font-size:22px;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--muted)}
+.kpi.hl{background:var(--accent-soft);border-color:var(--accent)}
+svg text{fill:var(--muted);font-family:var(--mono);font-size:10px}
+/* journal */
+.jform{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.jform input,.jform select,textarea{width:100%;font:inherit;font-size:15px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px}
+textarea{min-height:200px;font-family:var(--mono);font-size:13px}
+.del{background:none;border:none;color:var(--ko);cursor:pointer;font-size:16px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header style="display:flex;flex-direction:column;gap:6px">
+    <span class="eyebrow">Achatiniculture · Côte d'Ivoire · géré depuis la Suisse</span>
+    <h1>Ferme Escargots CI</h1>
+    <p class="muted">Le guide de A à Z, le calculateur de rentabilité et le carnet de suivi de ta ferme d'escargots géants.</p>
+  </header>
+  <div class="board">
+    <div><div class="lbl">Ta progression dans le guide</div><div class="big" id="pbig">0 / 0</div><div class="row" style="margin-top:8px"><div class="bar"><i id="pbar"></i></div></div></div>
+    <div><div class="lbl">Objectif réaliste</div><div style="font-family:var(--display);font-weight:600;font-size:18px">Petite ferme rentable d'abord,<br>puis grande ferme en 3 à 4 ans</div></div>
+  </div>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+  <main id="view"></main>
+  <p class="note" id="sync">Ton avancement est enregistré sur cet appareil.</p>
+</div>
+
+<script>
+const TABS=[["verite","5 millions par mois ?"],["guide","Guide A à Z"],["calc","Calculateur"],["distance","Gérer depuis la Suisse"],["carnet","Carnet de la ferme"],["pieges","Pièges à éviter"]];
+const STEPS=[
+ {t:"Se former avant d'investir",w:"Mois 0 · 2 à 4 semaines",b:`<p>La plupart des élevages qui échouent ont démarré après une formation trop courte. En Côte d'Ivoire, environ 18 000 personnes ont été formées, mais souvent en stage court, et une bonne partie ne s'est jamais vraiment installée.</p>
+ <ul class="clean"><li>Fais une formation <b>pratique, sur une vraie ferme en activité</b>, de préférence pendant ton prochain séjour en Côte d'Ivoire. La zone d'Azaguié, à 40 km d'Abidjan, compte une trentaine de fermes.</li><li>Visite au moins <b>3 fermes</b> et demande à chaque éleveur : combien il vend par mois, à qui, à quel prix, combien d'escargots il perd.</li><li>Lis le manuel gratuit Agrodok n° 47 « L'élevage d'escargots » (lien dans l'onglet Pièges).</li></ul>`,
+ k:["Lire le manuel Agrodok 47","Visiter 3 fermes en activité et noter leurs vrais chiffres","Suivre une formation pratique sur une ferme","Trouver un acheteur prêt à acheter ta future production"]},
+ {t:"Choisir l'espèce",w:"Mois 0",b:`<div class="tbl"><table><thead><tr><th></th><th>Achatina achatina</th><th>Archachatina marginata</th></tr></thead><tbody>
+ <tr><td>Réputation</td><td>La plus demandée en Afrique de l'Ouest</td><td>Gros escargot noir, très apprécié</td></tr>
+ <tr><td>Maturité</td><td>14 à 20 mois</td><td>10 à 12 mois</td></tr>
+ <tr><td>Œufs par ponte</td><td>30 à 300 (souvent 100 à 400)</td><td>4 à 18</td></tr>
+ <tr><td>Taille adulte</td><td>Coquille ~18 cm, jusqu'à 450 g</td><td>Jusqu'à ~20 cm et 500 g</td></tr>
+ <tr><td>Climat</td><td>Humidité 80 à 95 %, sud forestier</td><td>Un peu plus tolérant</td></tr></tbody></table></div>
+ <p><b>Conseil :</b> commence avec <b>Achatina achatina</b>, l'espèce la plus vendue à Abidjan, qui pond beaucoup plus. Elle est plus lente à grandir, d'où l'importance de démarrer tôt.</p>
+ <p class="note">Évite Achatina fulica (petit escargot de jardin) : peu de valeur et espèce envahissante.</p>`,
+ k:["Choisir l'espèce principale","Vérifier auprès d'acheteurs que c'est bien l'espèce qu'ils veulent"]},
+ {t:"Trouver le terrain et la personne de confiance",w:"Mois 1",b:`<p><b>Le terrain :</b> zone du sud forestier humide (région d'Abidjan, Azaguié, Agboville, Alépé, Divo, Gagnoa…), avec de l'ombre (arbres), de l'eau toute l'année, à l'abri du vent, loin des champs traités aux pesticides, accessible en voiture pour livrer à Abidjan.</p>
+ <p><b>La personne sur place</b> est la clé de ton projet, puisque tu vis en Suisse. Il te faut un <b>gardien-soigneur</b> qui vit sur le terrain ou juste à côté. C'est lui qui nourrit le soir, arrose, ramasse les morts et surveille les vols.</p>
+ <ul class="clean"><li>Choisis quelqu'un qui a fait la formation avec toi, ou forme-le sur une ferme.</li><li>Fais un <b>contrat écrit</b> : salaire fixe, plus une prime liée aux kilos vendus et au faible taux de mortalité.</li><li>Prévois un salaire au moins égal au minimum légal (75 000 FCFA par mois).</li></ul>`,
+ k:["Trouver un terrain avec ombre, eau et accès route","Vérifier les papiers du terrain (location ou achat écrit)","Recruter le gardien-soigneur et signer un contrat","Lui faire suivre une formation pratique"]},
+ {t:"Créer l'entreprise",w:"Mois 1",b:`<ul class="clean"><li>Crée une entreprise en Côte d'Ivoire (entreprise individuelle ou SARL) au guichet unique de création d'entreprises (CEPICI). Elle te permet de facturer, d'ouvrir un compte et de signer avec des acheteurs.</li><li>Ouvre un <b>compte dédié à la ferme</b>, séparé de tes comptes personnels. Paie tout par virement ou Mobile Money (Wave, Orange Money) pour garder une trace.</li><li>En Suisse, avec ton permis C, tu déclares tes revenus du monde entier : fais vérifier par un fiduciaire comment déclarer ta ferme.</li></ul>`,
+ k:["Créer l'entreprise en Côte d'Ivoire","Ouvrir un compte ou un portefeuille Mobile Money réservé à la ferme","Demander conseil à un fiduciaire suisse pour la déclaration"]},
+ {t:"Construire les enclos",w:"Mois 1 à 2",b:`<p>Il te faut trois zones séparées, toutes à l'ombre, avec un toit végétal ou un filet d'ombrage (pas de tôle, trop chaude) :</p>
+ <ul class="clean"><li><b>Reproduction :</b> bacs ou fosses de 1 × 1 m, profonds de 40 à 50 cm, avec 10 à 15 cm de terre meuble. 7 à 15 reproducteurs par m².</li><li><b>Nurserie :</b> caisses en bois sur pieds avec 18 à 25 cm de terre tamisée, couvercle grillagé et cadenas. Environ 100 bébés par m².</li><li><b>Croissance (engraissement) :</b> parcs de 50 cm de haut, enterrés d'au moins 20 cm, en briques ou en bois avec filet fin. Plante du taro, de la patate douce ou des légumes feuilles dedans. Environ 1 à 1,5 kg d'escargots par m².</li></ul>
+ <p>Ajoute une <b>clôture</b> et un <b>filet</b> contre les rats, oiseaux, serpents et voleurs, un point d'eau et un petit local pour l'aliment. Change la terre tous les 3 mois.</p>`,
+ k:["Faire un devis pour les enclos (briques ou bois, filets, cadenas)","Construire les bacs de reproduction","Construire la nurserie","Construire les parcs de croissance","Installer clôture, filets et point d'eau","Planter des papayers, du taro et de la patate douce autour"]},
+ {t:"Acheter les reproducteurs",w:"Mois 2 · début de la saison des pluies",b:`<ul class="clean"><li>Achète tes premiers reproducteurs <b>au début de la grande saison des pluies</b> (vers avril) : c'est la saison de ponte.</li><li>Achète de préférence <b>chez un éleveur</b> plutôt que des escargots ramassés en forêt : ceux-ci sont stressés, parfois malades, et meurent souvent après un changement d'alimentation.</li><li>Choisis des adultes sains : coquille solide sans fissure, qui se rétractent vite quand on les touche, de taille homogène.</li><li>Commence petit : <b>200 à 500 reproducteurs</b>. Tu augmenteras avec tes propres jeunes.</li></ul>`,
+ k:["Trouver un éleveur vendeur de reproducteurs","Acheter le premier lot (200 à 500)","Mettre les reproducteurs en quarantaine quelques jours avant de les mélanger"]},
+ {t:"Nourrir et entretenir",w:"Tous les jours",b:`<ul class="clean"><li><b>Nourrir le soir</b> après le coucher du soleil : les escargots mangent la nuit. Enlever les restes le matin pour ne pas attirer les rats.</li><li><b>Aliments :</b> feuilles et fruits de papayer (les meilleurs), taro, feuilles de manioc, gombo, banane, chou, aubergine, invendus de marché. Évite les feuilles poilues ou cireuses et les plantes toxiques (Jatropha).</li><li><b>Calcium obligatoire</b> pour la coquille : poudre de coquilles d'huîtres ou de coquilles d'escargots broyées. Un aliment concentré (provende) accélère nettement la croissance.</li><li><b>Humidité :</b> 80 à 95 %, température 25 à 30 °C. Arrose en saison sèche, sinon les escargots s'enferment dans leur coquille et arrêtent de grandir.</li><li>Pas d'insecticides ni d'herbicides, pas de fiente de poule fraîche sur la terre.</li><li>Manipule les escargots le moins possible : ça freine leur croissance.</li></ul>`,
+ k:["Établir le menu de la semaine avec le gardien","Trouver une source de calcium","Trouver des invendus de marché ou planter de quoi nourrir","Mettre en place l'arrosage pour la saison sèche"]},
+ {t:"Gérer la reproduction",w:"Mois 3 à 4, puis en continu",b:`<ul class="clean"><li>Les œufs éclosent en <b>2 à 4 semaines</b> selon la chaleur. Le taux d'éclosion peut dépasser 90 %.</li><li>Dès l'éclosion, <b>sépare les bébés des adultes</b> pour éviter qu'ils soient mangés, et place-les en nurserie.</li><li>Garde chaque lot avec des escargots de même taille.</li><li>Garde chaque année les plus beaux escargots (croissance rapide, coquille solide) comme futurs reproducteurs.</li><li>Note chaque ponte, éclosion et mortalité dans le carnet.</li></ul>`,
+ k:["Organiser la nurserie avant les premières éclosions","Noter chaque ponte et éclosion dans le carnet","Choisir les futurs reproducteurs parmi les meilleurs"]},
+ {t:"Vendre",w:"À partir d'environ 14 à 18 mois",b:`<ul class="clean"><li><b>Prix constatés :</b> en juillet 2026, l'escargot se vendait environ 3 000 FCFA le kilo à Abidjan et 2 000 FCFA à Bouaké, au marché. Directement à la ferme, compte environ un tiers de moins.</li><li>Le prix <b>monte en saison sèche</b> (moins d'escargots sauvages) : organise tes ventes pour en avoir beaucoup à ce moment-là.</li><li><b>Clients :</b> grossistes et revendeuses des marchés d'Abidjan (Adjamé, Yopougon…), maquis et restaurants, hôtels, transformateurs. Certains grands producteurs rachètent la production des petites fermes.</li><li><b>Produits en plus :</b> la bave sert à faire du savon et des cosmétiques, la poudre de coquilles des cosmétiques et de l'aliment pour animaux.</li><li>Idéal : un <b>contrat d'achat écrit</b> avec un acheteur avant même ta première vente.</li></ul>`,
+ k:["Lister 5 acheteurs possibles avec leurs prix","Signer un accord d'achat avec au moins un acheteur","Préparer la première vente"]},
+ {t:"Grandir",w:"Années 2 à 4",b:`<ul class="clean"><li>Agrandis <b>seulement quand tu vends tout ce que tu produis</b> et que ta mortalité est maîtrisée.</li><li>Multiplie tes reproducteurs avec tes propres jeunes plutôt qu'en achetant.</li><li>Ajoute la transformation (escargots décortiqués, congelés, brochettes) : le prix au kilo est beaucoup plus élevé.</li><li>Recrute un second soigneur au-delà d'environ 10 000 à 15 000 escargots.</li><li>Utilise le calculateur pour savoir combien de reproducteurs il te faut pour atteindre ton objectif.</li></ul>`,
+ k:["Atteindre une mortalité stable et faible","Vendre toute la production pendant 6 mois","Doubler le nombre de reproducteurs avec tes propres jeunes","Tester la vente d'escargots décortiqués ou transformés"]},
+];
+
+const KEY="fermeescargots_v1";
+let S={tab:"verite",checks:{},journal:[],calc:null};
+try{const s=JSON.parse(localStorage.getItem(KEY)||"null");if(s&&typeof s==="object")S={...S,...s}}catch(e){}
+let remote=null,writing=false,dirty=false,wt=null;
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(remote){clearTimeout(wt);wt=setTimeout(push,800)}}
+async function push(){if(!remote)return;if(writing){dirty=true;return}writing=true;
+  try{const {tab,...body}=S;await remote.set({s:body,at:Date.now()});syncMsg(true)}catch(e){syncMsg(false)}writing=false;if(dirty){dirty=false;push()}}
+function syncMsg(ok){const el=document.getElementById("sync");el.textContent=ok?"Ton avancement et ton carnet sont enregistrés sur ton compte : tu les retrouves sur tous tes appareils.":"Ton avancement est enregistré sur cet appareil."}
+const $=s=>document.querySelector(s);const view=$("#view");
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmt=n=>Math.round(n).toLocaleString("fr-FR").replace(/ | /g," ");
+const R={};
+
+function renderTabs(){$("#tabs").innerHTML=TABS.map(([k,l])=>`<button role="tab" data-t="${k}" aria-selected="${S.tab===k}">${l}</button>`).join("");
+  $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>go(b.dataset.t))}
+function go(t){S.tab=t;save();renderTabs();R[t]();window.scrollTo({top:0});try{history.replaceState(null,"","#"+t)}catch(e){}}
+function progress(){const tot=STEPS.reduce((n,s)=>n+s.k.length,0);const d=Object.values(S.checks).filter(Boolean).length;
+  $("#pbig").textContent=d+" / "+tot+" étapes";$("#pbar").style.width=(d/tot*100)+"%"}
+
+/* --------- Vérité --------- */
+R.verite=()=>{view.innerHTML=`<section>
+ <div class="card warn"><span class="eyebrow" style="color:var(--amber)">La question honnête</span><h2>5 millions de FCFA de bénéfice par mois, c'est possible ?</h2>
+ <p>Oui, mais <b>pas au début, et pas avec une petite ferme</b>. 5 millions de FCFA, c'est environ <b>7 100 francs suisses</b> de bénéfice par mois. Pour y arriver, il faut une grande ferme, construite en 3 à 4 ans.</p></div>
+ <div class="card"><h3>Ce que disent les chiffres vérifiables</h3>
+ <ul class="clean">
+  <li>Un éleveur d'Azaguié, Jean-Norbert Akéssé, a investi <b>2 millions de FCFA</b> après une formation. Sa ferme lui rapporte environ <b>12 millions de FCFA par an</b>, soit environ 1 million par mois (AFP, 2023).</li>
+  <li>Prix de l'escargot en juillet 2026 : environ <b>3 000 FCFA le kilo</b> à Abidjan, <b>2 000 FCFA</b> à Bouaké, au marché. Moins cher directement à la ferme.</li>
+  <li>Un escargot géant met <b>14 à 18 mois</b> avant d'être vendu. Ta première vraie vente arrive donc environ un an et demi après le démarrage.</li>
+ </ul></div>
+ <div class="card"><h3>Ce qu'il faudrait pour 5 millions de bénéfice par mois</h3>
+ <p>Avec des hypothèses prudentes (escargot vendu 250 g, 2 000 FCFA le kilo à la ferme, 40 % des œufs arrivent à la vente), il faudrait environ :</p>
+ <ul class="clean"><li>environ <b>3 900 reproducteurs</b></li><li>vendre environ <b>16 500 escargots par mois</b>, soit environ <b>4 tonnes</b></li><li>environ <b>0,75 hectare</b> d'enclos et une <b>équipe de 15 à 20 soigneurs</b></li><li>environ <b>27 millions de FCFA</b> d'investissement (environ 38 000 CHF) si tout était construit d'un coup</li></ul>
+ <p>Avec une petite ferme de 300 reproducteurs, les mêmes hypothèses donnent environ <b>280 000 FCFA de bénéfice par mois</b> (environ 400 CHF), après un an et demi.</p>
+ <p>Refais le calcul avec tes propres chiffres dans l'onglet <b>Calculateur</b>.</p></div>
+ <div class="card"><h3>Pourquoi les vidéos donnent des chiffres plus gros</h3>
+ <ul class="clean"><li>Elles confondent souvent <b>chiffre d'affaires</b> (tout ce qui est encaissé) et <b>bénéfice</b> (ce qui reste après les salaires, l'aliment, les pertes).</li><li>Elles oublient les <b>14 à 18 mois</b> d'attente sans vente.</li><li>Elles comptent rarement la <b>mortalité</b>, les <b>vols</b> et la <b>saison sèche</b>.</li><li>Beaucoup gagnent surtout de l'argent en vendant des <b>formations ou des reproducteurs</b>, pas des escargots.</li></ul></div>
+ <div class="card"><h3>Le plan réaliste</h3>
+ <div class="tbl"><table><thead><tr><th>Phase</th><th>Durée</th><th>Objectif</th></tr></thead><tbody>
+  <tr><td>1. Test</td><td>Mois 0 à 18</td><td>200 à 500 reproducteurs, apprendre, réussir les premières ventes</td></tr>
+  <tr><td>2. Petite ferme rentable</td><td>Années 2 à 3</td><td>500 000 à 1 million FCFA de bénéfice par mois</td></tr>
+  <tr><td>3. Grande ferme</td><td>Années 3 à 4 et plus</td><td>Viser plusieurs millions par mois, avec transformation et équipe</td></tr></tbody></table></div>
+ <div class="row"><button class="btn" data-go="guide">Commencer le guide</button><button class="btn ghost" data-go="calc">Faire mon calcul</button></div></div>
+ </section>`;view.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go))};
+
+/* --------- Guide --------- */
+R.guide=()=>{view.innerHTML=`<section><p class="muted">10 étapes, dans l'ordre. Coche chaque tâche quand elle est faite.</p>${STEPS.map((s,i)=>{
+  const d=s.k.filter((_,j)=>S.checks[i+"_"+j]).length;const all=d===s.k.length;
+  return `<details class="step ${all?"done":""}" ${S.open===i?"open":""} data-i="${i}"><summary><span class="num-badge">${all?"✓":i+1}</span><span style="min-width:0"><h3>${esc(s.t)}</h3><span class="when">${esc(s.w)}</span></span><span class="pill ${all?"":"amber"}">${d}/${s.k.length}</span></summary>
+  <div class="sb">${s.b}<div>${s.k.map((t,j)=>{const id=i+"_"+j;return `<div class="task ${S.checks[id]?"on":""}"><input type="checkbox" id="c${id}" data-k="${id}" ${S.checks[id]?"checked":""}><label for="c${id}">${esc(t)}</label></div>`}).join("")}</div></div></details>`}).join("")}</section>`;
+  view.querySelectorAll("details.step").forEach(d=>d.addEventListener("toggle",()=>{if(d.open){S.open=+d.dataset.i;save()}}));
+  view.querySelectorAll("[data-k]").forEach(c=>c.onchange=()=>{S.checks[c.dataset.k]=c.checked;save();progress();
+    const open=S.open;R.guide();});
+};
+
+/* --------- Calculateur --------- */
+const SPECIES={achatina:{eggs:150,months:15,w:.25},marginata:{eggs:40,months:12,w:.2}};
+const DEF={sp:"achatina",breeders:300,eggs:150,hatch:85,surv:40,months:15,w:.25,price:2000,feed:400,salary:90000,perWorker:15000,other:50000,breederPrice:1000,buildPerM2:3000,rate:700,target:5000000};
+function C(){return {...DEF,...(S.calc||{})}}
+function model(c,breeders){
+  const perYear=breeders*c.eggs*(c.hatch/100)*(c.surv/100);
+  const perMonth=perYear/12;const kg=perMonth*c.w;const rev=kg*c.price;const feed=kg*c.feed;
+  const stock=perYear*c.months/12;const workers=Math.max(1,Math.ceil(stock/c.perWorker));
+  const fixed=workers*c.salary+c.other;const profit=rev-feed-fixed;
+  const area=breeders/10+stock/35;const setup=breeders*c.breederPrice+area*c.buildPerM2+500000;
+  return {perYear,perMonth,kg,rev,feed,fixed,profit,workers,stock,area,setup};
+}
+function needed(c){let lo=1,hi=200000;for(let k=0;k<60;k++){const m=(lo+hi)/2;if(model(c,m).profit>=c.target)hi=m;else lo=m}return Math.ceil(hi)}
+R.calc=()=>{const c=C();
+  const F=(k,l,step=1,suf="")=>`<label class="field"><span>${l}${suf?` <span class="note">(${suf})</span>`:""}</span><input type="number" inputmode="decimal" step="${step}" id="f_${k}" value="${c[k]}"></label>`;
+  view.innerHTML=`<section><div class="calc">
+   <div class="card"><h3>Tes hypothèses</h3>
+    <label class="field"><span>Espèce</span><select id="f_sp"><option value="achatina" ${c.sp==="achatina"?"selected":""}>Achatina achatina</option><option value="marginata" ${c.sp==="marginata"?"selected":""}>Archachatina marginata</option></select></label>
+    ${F("breeders","Reproducteurs au départ")}
+    ${F("eggs","Œufs par reproducteur et par an")}
+    ${F("hatch","Œufs qui éclosent","1","%")}
+    ${F("surv","Bébés qui arrivent à la vente","1","%")}
+    ${F("months","Mois avant la vente (œuf → vente)")}
+    ${F("w","Poids d'un escargot vendu","0.01","kg")}
+    ${F("price","Prix de vente à la ferme","50","FCFA/kg")}
+    ${F("feed","Coût de l'aliment par kilo produit","50","FCFA")}
+    ${F("salary","Salaire d'un soigneur","5000","FCFA/mois")}
+    ${F("perWorker","Escargots gérés par soigneur","1000")}
+    ${F("other","Autres frais (eau, transport…)","5000","FCFA/mois")}
+    ${F("breederPrice","Prix d'un reproducteur","50","FCFA")}
+    ${F("buildPerM2","Construction des enclos","500","FCFA/m²")}
+    ${F("rate","1 franc suisse =","10","FCFA")}
+    ${F("target","Ton objectif de bénéfice","100000","FCFA/mois")}
+    <button class="btn ghost" id="reset">Remettre les valeurs prudentes</button>
+    <p class="note">Valeurs de départ prudentes, à remplacer par les vrais chiffres que tu obtiens en visitant des fermes.</p>
+   </div>
+   <div class="card" id="out"></div></div></section>`;
+  view.querySelectorAll("input,select").forEach(i=>i.addEventListener("input",()=>{const n={...C()};
+    if(i.id==="f_sp"){n.sp=i.value;Object.assign(n,{eggs:SPECIES[i.value].eggs,months:SPECIES[i.value].months,w:SPECIES[i.value].w});S.calc=n;save();R.calc();return}
+    const k=i.id.slice(2);const v=parseFloat(i.value);if(!isNaN(v))n[k]=v;S.calc=n;save();out()}));
+  $("#reset").onclick=()=>{S.calc=null;save();R.calc()};
+  out();
+};
+function out(){const c=C();const m=model(c,c.breeders);const need=needed(c);const mn=model(c,need);const chf=v=>fmt(v/c.rate)+" CHF";
+  const first=c.months+1;
+  // courbe sur 48 mois : bénéfice cumulé
+  const pts=[];let cum=-m.setup;let pay=null;
+  for(let mo=0;mo<=48;mo++){const prod=mo>=first?1:0;cum+=prod?m.profit:-(m.fixed);pts.push(cum);if(pay===null&&cum>=0)pay=mo}
+  const W=320,H=150,P=34;const mx=Math.max(...pts,1),mi=Math.min(...pts,0);const y=v=>H-14-(v-mi)/(mx-mi||1)*(H-28);const x=i=>P+i*(W-P-8)/48;
+  const path=pts.map((v,i)=>(i?"L":"M")+x(i).toFixed(1)+","+y(v).toFixed(1)).join("");
+  $("#out").innerHTML=`<h3>Résultat avec ${fmt(c.breeders)} reproducteurs</h3>
+   <div class="kpis">
+    <div class="kpi"><b>${fmt(m.perMonth)}</b><span>escargots vendus par mois</span></div>
+    <div class="kpi"><b>${fmt(m.kg)} kg</b><span>vendus par mois</span></div>
+    <div class="kpi"><b>${fmt(m.rev)}</b><span>FCFA de chiffre d'affaires / mois</span></div>
+    <div class="kpi ${m.profit>0?"hl":""}"><b style="color:${m.profit<0?"var(--ko)":"inherit"}">${fmt(m.profit)}</b><span>FCFA de bénéfice / mois · ${chf(m.profit)}</span></div>
+    <div class="kpi"><b>${fmt(m.setup)}</b><span>FCFA d'investissement de départ · ${chf(m.setup)}</span></div>
+    <div class="kpi"><b>${fmt(m.area)} m²</b><span>d'enclos · ${m.workers} soigneur${m.workers>1?"s":""}</span></div>
+   </div>
+   <p class="note">Premières ventes vers le mois ${first}. Avant, tu paies les salaires sans rien vendre. ${pay!==null?`Tu récupères ton argent vers le <b>mois ${pay}</b>.`:"Avec ces chiffres, tu ne récupères pas ton argent en 4 ans."}</p>
+   <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Argent cumulé sur 48 mois" style="width:100%;height:auto">
+    <line x1="${P}" x2="${W-8}" y1="${y(0)}" y2="${y(0)}" stroke="var(--line)"/>
+    <text x="2" y="${y(0)+3}">0</text><text x="2" y="${y(mx)+8}">${fmt(mx/1e6)} M</text><text x="2" y="${y(mi)}">${fmt(mi/1e6)} M</text>
+    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+    ${[0,12,24,36,48].map(i=>`<text x="${x(i)-8}" y="${H-2}">${i} m</text>`).join("")}
+   </svg>
+   <p class="note">Argent cumulé (investissement, salaires puis bénéfices), en millions de FCFA, sur 48 mois.</p>
+   <div class="card" style="background:var(--accent-soft);border-color:var(--accent)">
+    <h3>Pour atteindre ${fmt(c.target)} FCFA par mois (${chf(c.target)})</h3>
+    <ul class="clean"><li>environ <b>${fmt(need)} reproducteurs</b></li><li><b>${fmt(mn.perMonth)}</b> escargots vendus par mois (${fmt(mn.kg)} kg)</li><li>environ <b>${fmt(mn.area)} m²</b> d'enclos et <b>${mn.workers} soigneurs</b></li><li>investissement de départ d'environ <b>${fmt(mn.setup)} FCFA</b> (${chf(mn.setup)})</li></ul>
+    <p class="note">Le mieux : y arriver progressivement, en multipliant tes reproducteurs avec tes propres jeunes au lieu de tout acheter d'un coup.</p>
+   </div>`;
+}
+
+/* --------- À distance --------- */
+const REPORT=`RAPPORT DU JOUR – Ferme escargots
+Date :
+Nourriture donnée ce soir (quoi, combien) :
+Arrosage fait : oui / non
+Escargots morts ramassés :
+Pontes trouvées :
+Éclosions :
+Problème (rats, fourmis, vol, eau…) :
+Dépenses du jour (montant + quoi) :
+Ventes du jour (kg + prix + acheteur) :
++ 2 photos : un enclos de croissance et la nurserie`;
+R.distance=()=>{view.innerHTML=`<section>
+ <div class="card"><h3>Le principe : tu décides, ton gardien exécute, tu vérifies</h3>
+ <p>Vivre en Suisse n'empêche pas de réussir, mais ton projet repose sur trois choses : une personne fiable sur place, des rapports réguliers, et des contrôles.</p></div>
+ <div class="card"><h3>Avant de partir de Côte d'Ivoire</h3>
+ <ul class="clean"><li>Reste <b>2 à 4 semaines sur place</b> pour la formation, la construction et l'arrivée des reproducteurs.</li><li>Fais la formation <b>avec ton gardien</b> : vous aurez les mêmes méthodes.</li><li>Désigne une <b>deuxième personne de confiance</b> (famille, ami) qui passe à l'improviste une fois par semaine et t'envoie des photos.</li><li>Signe un contrat écrit avec le gardien, avec une <b>prime</b> sur les kilos vendus et sur une faible mortalité.</li></ul></div>
+ <div class="card"><h3>Le rapport du jour par WhatsApp</h3>
+ <p>Demande à ton gardien de t'envoyer ce message chaque soir, avec 2 photos. Il prend 3 minutes et te permet de tout suivre depuis la Suisse.</p>
+ <textarea id="rep" readonly>${esc(REPORT)}</textarea>
+ <div class="row"><button class="btn" id="copy">Copier le modèle</button><span class="note" id="copied" hidden>Copié. Colle-le dans WhatsApp pour ton gardien.</span></div>
+ <p class="note">Une fois par semaine, reporte les chiffres principaux dans l'onglet Carnet.</p></div>
+ <div class="card"><h3>Les contrôles</h3>
+ <ul class="clean"><li><b>Appel vidéo</b> chaque semaine : demande au gardien de filmer tous les enclos.</li><li><b>Caméra solaire 4G</b> sur la ferme : quelques dizaines de milliers de FCFA, pour voir à distance et dissuader les voleurs.</li><li><b>Argent :</b> envoie un budget mensuel fixe par Mobile Money. Les dépenses importantes se font sur facture et photo du reçu.</li><li><b>Ventes :</b> l'acheteur te paie directement, sur le compte de la ferme, pas en espèces au gardien.</li><li><b>Visite</b> au moins une à deux fois par an, plus la deuxième personne de confiance chaque semaine.</li></ul></div>
+ <div class="card"><h3>Calendrier type depuis la Suisse</h3>
+ <div class="tbl"><table><thead><tr><th>Quand</th><th>Ce que tu fais</th></tr></thead><tbody>
+  <tr><td>Tous les soirs</td><td>Lire le rapport WhatsApp (2 minutes)</td></tr>
+  <tr><td>Chaque semaine</td><td>Appel vidéo + mettre à jour le carnet</td></tr>
+  <tr><td>Chaque mois</td><td>Envoyer le budget, vérifier les reçus, calculer la mortalité</td></tr>
+  <tr><td>Chaque trimestre</td><td>Faire changer la terre des enclos, faire le point avec les acheteurs</td></tr>
+  <tr><td>Chaque année</td><td>Visite sur place, choix des nouveaux reproducteurs, décision d'agrandir</td></tr></tbody></table></div></div>
+ </section>`;
+ $("#copy").onclick=async()=>{try{await navigator.clipboard.writeText(REPORT);$("#copied").hidden=false}catch(e){const t=$("#rep");t.select();$("#copied").hidden=false;$("#copied").textContent="Le texte est sélectionné : copie-le."}}};
+
+/* --------- Carnet --------- */
+const JT={ponte:"Ponte",eclo:"Éclosion",mort:"Mortalité",vente:"Vente",dep:"Dépense",achat:"Achat de reproducteurs",note:"Note"};
+R.carnet=()=>{const J=S.journal.slice().sort((a,b)=>b.d.localeCompare(a.d));
+  const sum=t=>S.journal.filter(e=>e.t===t).reduce((n,e)=>n+(+e.q||0),0);
+  const sumM=t=>S.journal.filter(e=>e.t===t).reduce((n,e)=>n+(+e.m||0),0);
+  const born=sum("eclo"),dead=sum("mort"),bought=sum("achat");
+  const ventes=sumM("vente"),dep=sumM("dep")+sumM("achat");
+  const today=new Date().toISOString().slice(0,10);
+  view.innerHTML=`<section>
+   <div class="card"><h3>Ajouter une entrée</h3>
+    <form id="jf" class="jform">
+     <input type="date" id="jd" value="${today}" aria-label="Date">
+     <select id="jt" aria-label="Type">${Object.entries(JT).map(([k,l])=>`<option value="${k}">${l}</option>`).join("")}</select>
+     <input type="number" id="jq" inputmode="decimal" placeholder="Nombre ou kg" aria-label="Nombre ou kilos">
+     <input type="number" id="jm" inputmode="decimal" placeholder="Montant FCFA" aria-label="Montant en FCFA">
+     <input type="text" id="jn" placeholder="Détail (acheteur, cause…)" aria-label="Détail" style="grid-column:1/-1">
+     <button class="btn" type="submit">Ajouter</button>
+    </form>
+    <p class="note">Ponte, éclosion, mortalité, achat : mets le nombre d'escargots ou d'œufs. Vente : mets les kilos et le montant. Dépense : mets le montant.</p></div>
+   <div class="kpis">
+    <div class="kpi"><b>${fmt(bought+born-dead)}</b><span>escargots estimés en stock (achetés + nés − morts)</span></div>
+    <div class="kpi"><b>${born+bought?Math.round(dead/(born+bought)*100):0} %</b><span>de mortalité</span></div>
+    <div class="kpi"><b>${fmt(ventes)}</b><span>FCFA de ventes</span></div>
+    <div class="kpi ${ventes-dep>=0?"hl":""}"><b>${fmt(ventes-dep)}</b><span>FCFA de résultat (ventes − dépenses)</span></div>
+   </div>
+   <div class="card"><h3>Historique</h3>
+    ${J.length?`<div class="tbl"><table><thead><tr><th>Date</th><th>Type</th><th class="num">Nombre / kg</th><th class="num">FCFA</th><th>Détail</th><th></th></tr></thead><tbody>
+    ${J.map(e=>`<tr><td>${esc(e.d)}</td><td>${esc(JT[e.t]||e.t)}</td><td class="num">${e.q?fmt(e.q):""}</td><td class="num">${e.m?fmt(e.m):""}</td><td>${esc(e.n)}</td><td><button class="del" data-id="${e.id}" aria-label="Supprimer">✕</button></td></tr>`).join("")}</tbody></table></div>`
+    :`<p class="muted">Ton carnet est vide. Ajoute ta première entrée : par exemple tes dépenses de construction ou ton achat de reproducteurs.</p>`}
+    ${J.length?`<div class="row"><button class="btn ghost" id="exp">Copier le carnet (tableur)</button><span class="note" id="expd" hidden>Copié : colle-le dans Excel ou Numbers.</span></div>`:""}
+   </div></section>`;
+  $("#jf").onsubmit=e=>{e.preventDefault();const q=parseFloat($("#jq").value),m=parseFloat($("#jm").value);
+    if(isNaN(q)&&isNaN(m)&&!$("#jn").value.trim())return;
+    S.journal.push({id:Date.now().toString(36),d:$("#jd").value||today,t:$("#jt").value,q:isNaN(q)?0:q,m:isNaN(m)?0:m,n:$("#jn").value.trim()});save();R.carnet()};
+  view.querySelectorAll(".del").forEach(b=>b.onclick=()=>{const id=b.dataset.id;const row=b.closest("tr");
+    if(b.dataset.c){S.journal=S.journal.filter(e=>e.id!==id);save();R.carnet()}else{b.dataset.c="1";b.textContent="Supprimer ?";b.style.fontSize="12px"}});
+  const ex=$("#exp");if(ex)ex.onclick=async()=>{const t="Date\tType\tNombre/kg\tFCFA\tDétail\n"+J.map(e=>[e.d,JT[e.t],e.q,e.m,e.n].join("\t")).join("\n");
+    try{await navigator.clipboard.writeText(t);$("#expd").hidden=false}catch(err){$("#expd").hidden=false;$("#expd").textContent="La copie a été refusée par ton navigateur."}};
+};
+
+/* --------- Pièges --------- */
+R.pieges=()=>{view.innerHTML=`<section>
+ <div class="card warn"><h3>Méfie-toi des « investissements » escargots</h3><p>Si quelqu'un te propose de mettre de l'argent dans sa ferme ou de gérer la tienne à ta place contre un <b>rendement garanti</b>, sois très prudent : c'est le schéma classique des arnaques. Ne verse jamais d'argent sans avoir vu la ferme toi-même ou par une personne de confiance.</p></div>
+ <div class="card"><h3>Les erreurs qui font échouer les élevages</h3>
+ <ul class="clean">
+  <li><b>Démarrer trop gros</b> avant de savoir élever : toute l'erreur se multiplie.</li>
+  <li><b>Acheter des escargots ramassés en forêt</b> comme reproducteurs : stress, maladies, forte mortalité.</li>
+  <li><b>Trop d'escargots par m²</b> : croissance ralentie, maladies, arrêt de la ponte.</li>
+  <li><b>Oublier le calcium</b> : coquilles fragiles, mauvaise croissance.</li>
+  <li><b>Négliger la saison sèche</b> : sans arrosage, les escargots s'enferment et arrêtent de grandir.</li>
+  <li><b>Laisser les restes de nourriture</b> : ils attirent rats, fourmis et mouches parasites.</li>
+  <li><b>Pas d'acheteur trouvé à l'avance</b> : des escargots prêts mais pas vendus coûtent chaque jour.</li>
+  <li><b>Pesticides chez les voisins</b> : vérifie avant de choisir le terrain.</li>
+  <li><b>Vols</b> : clôture, cadenas, gardien sur place, caméra.</li>
+  <li><b>Pas de chiffres</b> : sans carnet, impossible de savoir si la ferme gagne de l'argent.</li>
+ </ul></div>
+ <div class="card"><h3>Pour aller plus loin</h3>
+ <ul class="clean">
+  <li><a href="https://www.agromisa.org/wp-content/uploads/Agrodok-47-Lelevage-descargots.pdf" target="_blank" rel="noopener">Agrodok 47 – L'élevage d'escargots (PDF gratuit)</a></li>
+  <li><a href="https://cgspace.cgiar.org/server/api/core/bitstreams/ee9b49a4-6e55-426c-ad4f-d473121b4dc3/content" target="_blank" rel="noopener">Manuel d'élevage des escargots géants africains sous les tropiques (CTA)</a></li>
+  <li><a href="https://lrrd.org/lrrd20/4/koua20058.htm" target="_blank" rel="noopener">Étude sur le marché des escargots à Abidjan</a></li>
+  <li><a href="https://www.sikafinance.com/conso/product/escargot-local_1061" target="_blank" rel="noopener">Prix de l'escargot par ville en Côte d'Ivoire (Sikafinance)</a></li>
+ </ul></div>
+ </section>`};
+
+/* --------- Démarrage --------- */
+(function(){const h=(location.hash||"").slice(1);if(TABS.some(t=>t[0]===h))S.tab=h})();
+renderTabs();progress();(R[S.tab]||R.verite)();
+window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(TABS.some(t=>t[0]===h)&&h!==S.tab)go(h)});
+
+// Synchronisation sur le compte Claude (si disponible)
+(async function(){try{
+  if(!window.claude||!window.claude.use)return;
+  const [db,user]=await Promise.all([window.claude.use("db"),window.claude.use("user")]);if(!db||!user)return;
+  const uid=await user.id();if(!uid)return;
+  const ref=db.collection("data/users/"+uid).doc("ferme");
+  const t=setTimeout(()=>syncMsg(false),10000);const snap=await ref.get();clearTimeout(t);remote=ref;
+  if(snap.exists){const r=snap.data().s||{};
+    const m={...S,...r,tab:S.tab};
+    m.checks={...(r.checks||{}),...Object.fromEntries(Object.entries(S.checks).filter(([k,v])=>v))};
+    const ids=new Set((r.journal||[]).map(e=>e.id));m.journal=[...(r.journal||[]),...S.journal.filter(e=>!ids.has(e.id))];
+    S=m;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}renderTabs();progress();R[S.tab]()}
+  await push();
+}catch(e){syncMsg(false)}})();
+</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}</script></body>
+</html>
